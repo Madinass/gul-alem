@@ -41,7 +41,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 40),
                 // Гүл суреті
                 Image.asset(
-                  "assets/flower.png",
+                  "assets/icon_flower.png",
                   width: 300,
                   height: 300,
                   fit: BoxFit.contain,
@@ -123,7 +123,7 @@ class HomeScreen extends StatelessWidget {
 //               ),
 //               const SizedBox(height: 40),
 //               Image.asset(
-//                 "assets/flower.png",
+//                 "assets/icon_flower.png",
 //                 width: 120,
 //                 height: 120,
 //               ),

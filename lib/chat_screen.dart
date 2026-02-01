@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'services/api_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -13,19 +13,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
 
-  // Өз API Key-іңді осы жерге қойғаның дұрыс
-  final String _apiKey = "AIzaSyDpQ79iwycvp9pxVaDugWatxMsUGg1Dmyk";
-
-  late GenerativeModel _model;
-
   @override
   void initState() {
     super.initState();
-    // Модельді баптау
-    _model = GenerativeModel(
-      model: 'gemini-pro',
-      apiKey: _apiKey,
-    );
     _messages.add({
       "role": "ai",
       "message": "Сәлем! Мен Gul Alem AI кеңесшісімін. Гүлдер туралы қандай сұрағыңыз бар?"
@@ -43,14 +33,11 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
 
     try {
-      // Пакеттің жаңа нұсқасына сай Content жіберу
-      final content = [Content.text("Сен гүл дүкенінің көмекшісісің. Сұрақ: $userText")];
-      final response = await _model.generateContent(content);
-
+      final reply = await ApiService.sendChatMessage(userText);
       setState(() {
         _messages.add({
           "role": "ai",
-          "message": response.text ?? "Кешіріңіз, жауап ала алмадым."
+          "message": reply.isNotEmpty ? reply : "Кешіріңіз, жауап ала алмадым."
         });
       });
     } catch (e) {
@@ -58,7 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _messages.add({
           "role": "ai",
-          "message": "Қате болды. Интернетті немесе API кілтті тексеріңіз."
+          "message": "Қате болды. Интернетті немесе API кілтін тексеріңіз."
         });
       });
     } finally {
@@ -140,7 +127,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: "Сұрақ қойыңыз...",
+                  hintText: "Сұрағ қойыңыз...",
                   filled: true,
                   fillColor: Colors.grey.shade50,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

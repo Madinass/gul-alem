@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'bas_bet_screen.dart';
 import 'catalog_screen.dart';
+import 'profile_screen.dart';
 
 class MainWrapper extends StatefulWidget {
-  const MainWrapper({super.key});
+  final int initialIndex;
+
+  const MainWrapper({super.key, this.initialIndex = 0});
 
   @override
   State<MainWrapper> createState() => _MainWrapperState();
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex.clamp(0, 4).toInt();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +29,7 @@ class _MainWrapperState extends State<MainWrapper> {
       const CatalogScreen(), // 1
       const Center(child: Text("Избранное беті")), // 2
       const Center(child: Text("Себет беті")),    // 3
-      const Center(child: Text("Профиль беті")),  // 4
+      const ProfileScreen(),  // 4
     ];
 
     return Scaffold(

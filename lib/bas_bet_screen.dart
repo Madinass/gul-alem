@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'product.dart';
 import 'product_detail_screen.dart';
-import 'chat_screen.dart'; // Чатқа өту үшін міндетті
+import 'chat_screen.dart';
+import 'services/api_service.dart'; // Чатқа өту үшін міндетті
 
 
 
@@ -17,11 +18,8 @@ class _BasBetScreenState extends State<BasBetScreen> {
   final Color lightPink = const Color(0xFFFFE6EB);
 
   // Танымал гүлдер тізімі (product_1-ден 3-ке дейін)
-  final List<Product> popularProducts = [
-    Product(id: '1', name: 'Ақ раушан', price: '16 990 тг', color: Colors.white, imagePath: 'assets/product_1.png'),
-    Product(id: '2', name: 'Тосынсый', price: '31 990 тг', color: Colors.white, imagePath: 'assets/product_2.png'),
-    Product(id: '3', name: 'Себеп-сіз', price: '18 990 тг', color: Colors.white, imagePath: 'assets/product_3.png'),
-  ];
+  List<Product> popularProducts = [];
+  bool _loadingPopular = true;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +30,7 @@ class _BasBetScreenState extends State<BasBetScreen> {
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Image.asset('assets/logo.png', // Бұлай өзгерт:
+          child: Image.asset('assets/icon_logo.png', // Бұлай өзгерт:
 errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_florist, color: Colors.pink),),
         ),
         title: const Text("Gul alem", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
@@ -108,6 +106,20 @@ errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_florist, co
   }
 
   Widget _buildPopularList() {
+    if (_loadingPopular) {
+      return const SizedBox(
+        height: 280,
+        child: Center(child: CircularProgressIndicator(color: Color(0xFFE60064))),
+      );
+    }
+
+    if (popularProducts.isEmpty) {
+      return const SizedBox(
+        height: 280,
+        child: Center(child: Text('Өнімдер табылмады')),
+      );
+    }
+
     return SizedBox(
       height: 280,
       child: ListView.builder(
@@ -143,19 +155,30 @@ errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_florist, co
                       const SizedBox(height: 5),
                       Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 2),
-                      Text(product.price, style: TextStyle(color: darkPink, fontWeight: FontWeight.w600)),
-                      // КОРЗИНА БАТЫРМАСЫ
+                      Text(product.formattedPrice, style: TextStyle(color: darkPink, fontWeight: FontWeight.w600)),
                       IconButton(
                         onPressed: () { /* Себетке қосу */ },
                         icon: Icon(Icons.shopping_cart_outlined, color: darkPink, size: 22),
                       ),
                     ],
                   ),
-                  // ЖҮРЕКШЕ
                   Positioned(
                     top: 12, right: 12,
                     child: Icon(Icons.favorite_border, color: darkPink, size: 20),
                   ),
+                  if (!product.inStock)
+                    Positioned(
+                      bottom: 60,
+                      right: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text('Out of stock', style: TextStyle(color: Colors.white, fontSize: 10)),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -179,9 +202,9 @@ errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_florist, co
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(right: 20),
             children: [
-              _infoCard("Жаңа гүлдер", "assets/info_1.png"),
-              _infoCard("Жылдам жеткізу", "assets/info_2.png"),
-              _infoCard("Сапа кепілдігі", "assets/info_3.png"),
+              _infoCard("Жаңа гүлдер", "assets/flower_mixed.png"),
+              _infoCard("Жылдам жеткізу", "assets/flower_rose_red.png"),
+              _infoCard("Сапа кепілдігі", "assets/flower_hydrangea.png"),
             ],
           ),
         ),
@@ -409,7 +432,7 @@ errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_florist, co
 //   final Color accentPink = const Color.fromARGB(255, 238, 111, 151);
 //   final Color navBarPink = const Color.fromARGB(255, 255, 230, 235);
 
-//   final String logoPath = 'assets/logo.png';
+//   final String logoPath = 'assets/icon_logo.png';
 //   final String aboutUsImagePath = 'assets/team_photo.png';
 
 //   bool _showWelcome = false;
@@ -773,4 +796,5 @@ errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_florist, co
 //     );
 //   }
 // }
+
 

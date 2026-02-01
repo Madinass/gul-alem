@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Форматтау үшін
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 import 'bas_bet_screen.dart'; // Сақтау
 import 'login_screen.dart'; // Сақтау
 // Мына импортты қосыңыз немесе түзетіңіз:
 import 'main_wrapper.dart'; 
+import 'services/api_service.dart';
 
 class RegisterApp extends StatelessWidget {
   const RegisterApp({super.key});
@@ -51,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String password = passwordController.text;
     String confirmPassword = confirmPasswordController.text;
 
-    // Құпия сөздің ұзындығы және шарттары
+    // Құпия сөздің ұзындығы және шарттар
     if (password.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Құпия сөз кемінде 8 таңбадан тұруы керек."), backgroundColor: Colors.red),
@@ -77,35 +76,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Серверге мәліметтерді жіберу
     try {
-      final response = await http.post(
-        Uri.parse('http://localhost:3000/register'), // Мұнда өз серверіңіздің адресін қойыңыз
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': nameController.text.trim(),
-          'phone': numberController.text.trim(),
-          'email': emailController.text.trim(),
-          'password': password,
-        }),
+      final data = await ApiService.register(
+        name: nameController.text.trim(),
+        phone: numberController.text.trim(),
+        email: emailController.text.trim(),
+        password: password,
       );
-if (response.statusCode == 201) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Тіркелу сәтті өтті!"), backgroundColor: Colors.green),
-  );
 
-  // ҚАТЕ ОСЫ ЖЕРДЕ БОЛУЫ МҮМКІН:
-  // Тікелей BasBetScreen-ге емес, MainWrapper-ге жіберу керек
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (context) => const MainWrapper()), // MainWrapper-ді импорттауды ұмытпа
-  );
-} else {
-        final data = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Қате тіркелу кезінде'), backgroundColor: Colors.red),
-        );
-      }
+      await ApiService.storeSession(
+        token: data['token'] ?? '',
+        role: data['role'] ?? 'user',
+        email: data['email'] ?? '',
+        name: data['name'] ?? '',
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Тіркелу сәтті өтті!"), backgroundColor: Colors.green),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainWrapper()),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Серверге қосылу қатесі: $e'), backgroundColor: Colors.red),
@@ -172,7 +165,7 @@ if (response.statusCode == 201) {
     const darkPink = Color.fromARGB(255, 230, 0, 100);
     final Size screenSize = MediaQuery.of(context).size;
 
-    const String placeholderAssetPath = 'assets/adam.png';
+    const String placeholderAssetPath = 'assets/icon_profile.png';
     const double imageSize = 100.0;
 
     return Scaffold(

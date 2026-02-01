@@ -1,30 +1,45 @@
 import 'package:flutter/material.dart';
+import 'product.dart';
+import 'services/api_service.dart';
 
-class ShopScreen extends StatelessWidget {
+class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    
-    final List<Map<String, dynamic>> flowers = [
-      {"image": "assets/rose.png", "name": "Pink hydrangeas", "price": "15 600₸"},
-      {"image": "assets/lily.png", "name": "White daisies", "price": "14 100₸"},
-      {"image": "assets/tulip.png", "name": "Delicate hydrangeas", "price": "11 900₸"},
-      {"image": "assets/daisy.png", "name": "Lilies", "price": "18 000₸"},
-      {"image": "assets/sunflower.png", "name": "Pions", "price": "51 000₸"},
-      {"image": "assets/orchid.png", "name": "Red roses", "price": "39 990₸"},
-      {"image": "assets/marigold.png", "name": "White chrysanthemums", "price": "17 000₸"},
-      {"image": "assets/jasmine.png", "name": "White peonies", "price": "46 000₸"},
-    ];
+  State<ShopScreen> createState() => _ShopScreenState();
+}
 
+class _ShopScreenState extends State<ShopScreen> {
+  bool _loading = true;
+  List<Product> products = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final data = await ApiService.fetchProducts();
+      if (!mounted) return;
+      setState(() {
+        products = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      
       body: SafeArea(
         child: Column(
           children: [
-            
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -33,7 +48,7 @@ class ShopScreen extends StatelessWidget {
                   Row(
                     children: [
                       Image.asset(
-                        "assets/flower.png",
+                        "assets/icon_flower.png",
                         width: 40,
                         height: 40,
                       ),
@@ -73,117 +88,119 @@ class ShopScreen extends StatelessWidget {
             ),
 
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.75, 
-                ),
-                itemCount: flowers.length,
-                itemBuilder: (context, index) {
-                  final flower = flowers[index];
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
-                          blurRadius: 6,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Stack(
-                      children: [
-                        
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            flower["image"],
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.75,
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                blurRadius: 6,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                        ),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  product.imagePath,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.local_florist, size: 50, color: Colors.pink),
+                                ),
+                              ),
 
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.7),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(4.0),
-                              child: Icon(Icons.favorite_border, color: Colors.red),
-                            ),
-                          ),
-                        ),
-
-                        Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  flower["name"],
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4.0),
+                                    child: Icon(Icons.favorite_border, color: Colors.red),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(flower["price"]),
-                                    ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.green,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: IconButton(
-                                        onPressed: () {},
-                                        icon: const Icon(
-                                          Icons.shopping_cart,
-                                          color: Colors.white,
-                                          size: 20,
+                              ),
+
+                              Align(
+                                alignment: Alignment.bottomLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product.name,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(product.formattedPrice),
+                                          ),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: product.inStock ? Colors.green : Colors.grey,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: IconButton(
+                                              onPressed: () {},
+                                              icon: const Icon(
+                                                Icons.shopping_cart,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.pink[50], 
+        backgroundColor: Colors.pink[50],
         selectedItemColor: Colors.pink,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
@@ -213,3 +230,4 @@ class ShopScreen extends StatelessWidget {
     );
   }
 }
+

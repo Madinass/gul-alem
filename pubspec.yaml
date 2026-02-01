@@ -37,7 +37,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   sqflite: ^2.4.2
   path: ^1.9.1
-  google_generative_ai: ^0.4.7
   shared_preferences: ^2.5.4
 
 
@@ -64,26 +63,30 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/flower.png
-    - assets/rose.png
-    - assets/lily.png
-    - assets/tulip.png
-    - assets/daisy.png
-    - assets/sunflower.png
-    - assets/orchid.png
-    - assets/marigold.png
-    - assets/jasmine.png
+    - assets/flower_chrysanthemum.png
+    - assets/flower_daisylike_chrysanthemum.png
+    - assets/flower_hydrangea.png
+    - assets/flower_lily.png
+    - assets/flower_mixed.png
+    - assets/flower_peony_pink.png
+    - assets/flower_peony_white.png
+    - assets/flower_rose_red.png
+    - assets/flower_rose_white.png
+    - assets/flower_tulip_yellow.png
+    - assets/flower_tulip_pink.png
     - assets/glavflow.png
-    - assets/key.png
-    - assets/adam.png
-    - assets/logo.png
-    - assets/team_photo.png
-    - assets/product_2.png
-    - assets/product_3.png
-    - assets/product_1.png
-    - assets/product_4.png
-    - assets/product_5.png
-    - assets/product_6.png
+    - assets/icon_flower.png
+    - assets/icon_key.png
+    - assets/icon_logo.png
+    - assets/icon_profile.png
+    - assets/photo_team_member.png
+    - assets/product_bear_bouquet.png
+    - assets/product_candy_bouquet.png
+    - assets/product_flower_umbrella1.png
+    - assets/product_flower_umbrella2.png
+    - assets/product_money_bouquet.png
+    - assets/product_balloons_standart.png
+    - assets/product_balloons_birthday.png
     - assets/cat_1.png
     - assets/cat_2.png
     - assets/cat_3.png
@@ -123,3 +126,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+

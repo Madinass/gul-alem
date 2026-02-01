@@ -52,7 +52,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               borderRadius: BorderRadius.circular(25),
             ),
             child: Image.asset(
-              'assets/product_${product.id}.png',
+              product.imagePath,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) => Icon(
                 Icons.local_florist,
@@ -74,7 +74,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(height: 10),
           // Бағасы
           Text(
-            product.price,
+            product.formattedPrice,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
