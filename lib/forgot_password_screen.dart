@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'services/api_service.dart';
 
-// Қадамдардың атаулары
 enum ForgotPasswordStep {
   enterPhone,
   verifyCode,
@@ -17,74 +17,136 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   ForgotPasswordStep _currentStep = ForgotPasswordStep.enterPhone;
-  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
-
-  // Қате туралы хабарламаны көрсету үшін
+  String? _resetToken;
+  bool _isSubmitting = false;
   String? _errorMessage;
 
-  // Келесі қадамға өту логикасы
-  void _nextStep() {
-    setState(() {
-      _errorMessage = null; // Әрбір қадамда қатені тазалау
-
-      switch (_currentStep) {
-        case ForgotPasswordStep.enterPhone:
-          // 1. Телефон нөмірін тексеру (мысалы, кем дегенде 9 таңба)
-          if (_phoneController.text.length < 9) {
-            _errorMessage = "Дұрыс телефон нөмірін енгізіңіз.";
-            break;
-          }
-          // TODO: Телефон нөмірін тексеру және код жіберу логикасын қосыңыз
-          _currentStep = ForgotPasswordStep.verifyCode;
-          break;
-
-        case ForgotPasswordStep.verifyCode:
-          // 2. Кодты тексеру (мысалы, 6 таңба)
-          if (_codeController.text.length != 6) {
-            _errorMessage = "Растау коды 6 таңбадан тұруы керек.";
-            break;
-          }
-          // TODO: Кодты тексеру логикасын қосыңыз
-          _currentStep = ForgotPasswordStep.setNewPassword;
-          break;
-
-        case ForgotPasswordStep.setNewPassword:
-          // 3. Құпиясөздерді тексеру
-          if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
-            _errorMessage = "Құпиясөзді енгізіңіз және растаңыз.";
-            break;
-          }
-          if (_passwordController.text != _confirmPasswordController.text) {
-            _errorMessage = "Құпиясөздер сәйкес келмейді.";
-            break;
-          }
-          if (_passwordController.text.length < 6) {
-             _errorMessage = "Құпиясөз кем дегенде 6 таңбадан тұруы керек.";
-            break;
-          }
-          // TODO: Жаңа құпиясөзді сақтау логикасын қосыңыз
-          _currentStep = ForgotPasswordStep.success;
-          break;
-
-        case ForgotPasswordStep.success:
-          // 4. Сәтті аяқталғаннан кейін кіру бетіне оралу
-          Navigator.of(context).pop();
-          break;
-      }
-    });
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _codeController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
-  // Артқа қайту логикасы
+  Future<void> _nextStep() async {
+    if (_isSubmitting) return;
+    setState(() {
+      _errorMessage = null;
+      _isSubmitting = true;
+    });
+
+    try {
+      switch (_currentStep) {
+        case ForgotPasswordStep.enterPhone:
+          final email = _emailController.text.trim();
+          final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+          if (!emailOk) {
+            setState(() {
+              _errorMessage = 'Дұрыс email енгізіңіз.';
+            });
+            return;
+          }
+          await ApiService.requestPasswordReset(email);
+          setState(() {
+            _currentStep = ForgotPasswordStep.verifyCode;
+          });
+          return;
+
+        case ForgotPasswordStep.verifyCode:
+          if (_codeController.text.length != 6) {
+            setState(() {
+              _errorMessage = 'Код 6 таңбадан тұруы керек.';
+            });
+            return;
+          }
+          final resetToken =
+              await ApiService.verifyResetCode(_emailController.text.trim(), _codeController.text);
+          if (resetToken.isEmpty) {
+            setState(() {
+              _errorMessage = 'Код қате. Қайта көріңіз.';
+            });
+            return;
+          }
+          _resetToken = resetToken;
+          setState(() {
+            _currentStep = ForgotPasswordStep.setNewPassword;
+          });
+          return;
+
+        case ForgotPasswordStep.setNewPassword:
+          if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
+            setState(() {
+              _errorMessage = 'Жаңа құпиясөзді енгізіп, растаңыз.';
+            });
+            return;
+          }
+          if (_passwordController.text != _confirmPasswordController.text) {
+            setState(() {
+              _errorMessage = 'Құпиясөздер сәйкес келмейді.';
+            });
+            return;
+          }
+          final password = _passwordController.text;
+          if (password.length < 8 || password.length > 64) {
+            setState(() {
+              _errorMessage = 'Құпиясөз 8-64 таңба аралығында болуы керек.';
+            });
+            return;
+          }
+          final hasNumber = RegExp(r'\d').hasMatch(password);
+          final hasSpecial = RegExp(r'[^\w\s]').hasMatch(password);
+          if (!hasNumber || !hasSpecial) {
+            setState(() {
+              _errorMessage = 'Құпиясөзде кемінде бір сан және арнайы таңба болуы керек.';
+            });
+            return;
+          }
+          if (_resetToken == null || _resetToken!.isEmpty) {
+            setState(() {
+              _errorMessage = 'Қалпына келтіру мерзімі өтті. Жаңа код сұраңыз.';
+            });
+            return;
+          }
+          await ApiService.resetPassword(
+            email: _emailController.text.trim(),
+            resetToken: _resetToken!,
+            newPassword: _passwordController.text,
+          );
+          setState(() {
+            _currentStep = ForgotPasswordStep.success;
+          });
+          return;
+
+        case ForgotPasswordStep.success:
+          Navigator.of(context).pop();
+          return;
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Қате пайда болды. Қайта көріңіз.';
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
   void _prevStep() {
     if (_currentStep == ForgotPasswordStep.enterPhone) {
-      Navigator.of(context).pop(); // Егер бірінші қадам болса, артқа қайту
+      Navigator.of(context).pop();
       return;
     }
     setState(() {
-      _errorMessage = null; // Артқа қайтқанда қатені тазалау
+      _errorMessage = null;
       switch (_currentStep) {
         case ForgotPasswordStep.verifyCode:
           _currentStep = ForgotPasswordStep.enterPhone;
@@ -101,26 +163,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
   }
 
-
-  // Қадамға байланысты тақырыпты қайтарады
   String get _title {
     switch (_currentStep) {
       case ForgotPasswordStep.enterPhone:
-        return "Нөмірді енгізіңіз";
+        return 'Email енгізу';
       case ForgotPasswordStep.verifyCode:
-        return "Кодты растаңыз";
+        return 'Кодты тексеру';
       case ForgotPasswordStep.setNewPassword:
-        return "Жаңа құпиясөз";
+        return 'Жаңа құпиясөз';
       case ForgotPasswordStep.success:
-        return "Сәтті аяқталды";
+        return 'Сәтті';
     }
   }
 
-  // Негізгі контентті қадамға байланысты құрастырады
   Widget _buildStepContent(BuildContext context) {
     switch (_currentStep) {
       case ForgotPasswordStep.enterPhone:
-        return _buildPhoneInputStep();
+        return _buildEmailInputStep();
       case ForgotPasswordStep.verifyCode:
         return _buildCodeVerificationStep();
       case ForgotPasswordStep.setNewPassword:
@@ -130,23 +189,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-  // Қадам 1: Телефон нөмірін енгізу
-  Widget _buildPhoneInputStep() {
+  Widget _buildEmailInputStep() {
     return Column(
       children: [
         const Text(
-          "Қалпына келтіру үшін телефон нөміріңізді енгізіңіз.",
+          'Қалпына келтіру кодын алу үшін email енгізіңіз.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 20),
         TextField(
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
-            prefixText: "+7 ",
-            hintText: "Телефон нөміріңіз",
-            errorText: _errorMessage, // Қате хабарламасын көрсету
+            hintText: 'Email адресі',
+            errorText: _errorMessage,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -155,17 +212,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-        _buildActionButton("Код жіберу", Icons.send),
+        _buildActionButton('Код жіберу', Icons.send),
       ],
     );
   }
 
-  // Қадам 2: Кодты растау
   Widget _buildCodeVerificationStep() {
     return Column(
       children: [
         Text(
-          "Сіздің нөміріңізге (+7 ${_phoneController.text}) жіберілген 6 таңбалы кодты енгізіңіз.",
+          '${_emailController.text} адресіне келген 6 таңбалы кодты енгізіңіз.',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.black54),
         ),
@@ -176,9 +232,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           textAlign: TextAlign.center,
           maxLength: 6,
           decoration: InputDecoration(
-            hintText: "Код",
+            hintText: 'Код',
             errorText: _errorMessage,
-            counterText: "", // maxLength-тен кейінгі санауышты жасыру
+            counterText: '',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -187,27 +243,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-        _buildActionButton("Кодты растау", Icons.check_circle_outline),
+        _buildActionButton('Кодты растау', Icons.check_circle_outline),
       ],
     );
   }
 
-  // Қадам 3: Жаңа құпиясөзді енгізу
   Widget _buildNewPasswordStep() {
     return Column(
       children: [
         const Text(
-          "Жаңа құпиясөзді енгізіп, оны растаңыз. (Кем дегенде 6 таңба)",
+          'Жаңа құпиясөзді енгізіп, растаңыз (8-64 таңба, 1 сан және арнайы таңба).',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 20),
-        // Жаңа құпиясөз
         TextField(
           controller: _passwordController,
           obscureText: true,
           decoration: InputDecoration(
-            hintText: "Жаңа құпиясөз",
+            hintText: 'Жаңа құпиясөз',
             errorText: _errorMessage,
             prefixIcon: const Icon(Icons.lock_outline, color: Colors.pink),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -218,12 +272,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // Құпиясөзді қайталау
         TextField(
           controller: _confirmPasswordController,
           obscureText: true,
           decoration: InputDecoration(
-            hintText: "Құпиясөзді қайта растаңыз",
+            hintText: 'Құпиясөзді растаңыз',
             prefixIcon: const Icon(Icons.lock_reset, color: Colors.pink),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
@@ -233,12 +286,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-        _buildActionButton("Құпиясөзді өзгерту", Icons.key_sharp),
+        _buildActionButton('Құпиясөзді өзгерту', Icons.key_sharp),
       ],
     );
   }
 
-  // Қадам 4: Сәтті аяқталу
   Widget _buildSuccessStep() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -250,23 +302,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 20),
         const Text(
-          "Құпиясөз сәтті өзгертілді!",
+          'Құпиясөз сәтті өзгертілді!',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
         ),
         const SizedBox(height: 10),
         const Text(
-          "Енді жаңа құпиясөзіңізбен кіре аласыз.",
+          'Енді жаңа құпиясөзбен кіре аласыз.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 30),
-        _buildActionButton("Кіру бетіне өту", Icons.arrow_back),
+        _buildActionButton('Кіру бетіне', Icons.arrow_back),
       ],
     );
   }
 
-  // Әрекет батырмасының жалпы үлгісі
   Widget _buildActionButton(String label, IconData icon) {
     return SizedBox(
       width: double.infinity,
@@ -280,7 +331,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           elevation: 5,
         ),
-        onPressed: _nextStep,
+        onPressed: _isSubmitting ? null : _nextStep,
         icon: Icon(icon),
         label: Text(
           label,
@@ -305,22 +356,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           onPressed: _prevStep,
         ),
       ),
-      // Контейнерді вертикальды түрде ортаға қою үшін ConstrainedBox және LayoutBuilder қолдану
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Пайдаланушының body-ге берген 30 padding-ін ескеру
           const double verticalPadding = 30.0;
-          
-          // LayoutBuilder-ден қолжетімді биіктікті аламыз
           final double minContentHeight = constraints.maxHeight;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(verticalPadding),
-            // Егер контент экраннан кіші болса, оны ортаға қою үшін minHeight қолданылады
             child: ConstrainedBox(
-              // Минималды биіктік: қолжетімді биіктік минус жалпы вертикалды padding (30 + 30)
               constraints: BoxConstraints(
-                minHeight: minContentHeight - (verticalPadding * 2), 
+                minHeight: minContentHeight - (verticalPadding * 2),
               ),
               child: Center(
                 child: Container(

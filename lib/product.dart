@@ -11,6 +11,8 @@ class Product {
   final bool inStock;
   final int stockCount;
   final bool popular;
+  final List<String> occasionTags;
+  final List<String> recipientTags;
 
   Product({
     required this.id,
@@ -22,6 +24,8 @@ class Product {
     this.inStock = true,
     this.stockCount = 0,
     this.popular = false,
+    this.occasionTags = const [],
+    this.recipientTags = const [],
     this.color = Colors.white,
   });
 
@@ -36,11 +40,15 @@ class Product {
       inStock: json['inStock'] ?? true,
       stockCount: json['stockCount'] ?? 0,
       popular: json['popular'] ?? false,
+      occasionTags: _readStringList(json['occasionTags']),
+      recipientTags: _readStringList(json['recipientTags']),
     );
   }
 
-  String get formattedPrice {
-    final digits = price.toString();
+  String get formattedPrice => formatPrice(price);
+
+  static String formatPrice(int value) {
+    final digits = value.toString();
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
       final indexFromEnd = digits.length - i;
@@ -51,4 +59,11 @@ class Product {
     }
     return '${buffer.toString()} тг';
   }
+  static List<String> _readStringList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList();
+    }
+    return const [];
+  }
 }
+

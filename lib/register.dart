@@ -51,21 +51,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String confirmPassword = confirmPasswordController.text;
 
     // Құпия сөздің ұзындығы және шарттар
-    if (password.length < 8) {
+    if (password.length < 8 || password.length > 64) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөз кемінде 8 таңбадан тұруы керек."), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Құпия сөз 8-64 таңба аралығында болуы керек."), backgroundColor: Colors.red),
       );
       return;
     }
-    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+    if (!RegExp(r'\d').hasMatch(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөз кемінде бір бас әріптен (A-Z) тұруы керек."), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Құпия сөзде кемінде бір сан болуы керек."), backgroundColor: Colors.red),
       );
       return;
     }
-    if (!RegExp(r'[0-9]').hasMatch(password)) {
+    if (!RegExp(r'[^\w\s]').hasMatch(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөз кемінде бір саннан (0-9) тұруы керек."), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Құпия сөзде кемінде бір арнайы таңба болуы керек."), backgroundColor: Colors.red),
       );
       return;
     }
@@ -251,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
                       _buildTextField(
                         emailController,
-                        "Email",
+                        "Эл. пошта",
                         Icons.email_outlined,
                         false,
                         false,
@@ -268,7 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         (v) => setState(() => _isPasswordVisible = v),
                         TextInputType.text,
                         null,
-                        8,
+                        64,
                       ),
                       const SizedBox(height: 20),
                       _buildTextField(
@@ -280,7 +280,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         (v) => setState(() => _isConfirmPasswordVisible = v),
                         TextInputType.text,
                         null,
-                        8,
+                        64,
                       ),
                       const SizedBox(height: 30),
                       Row(

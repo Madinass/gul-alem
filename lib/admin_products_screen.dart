@@ -15,6 +15,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   List<Product> products = [];
   List<Category> categories = [];
   bool _loading = true;
+  final Set<String> _popularUpdating = {};
 
   @override
   void initState() {
@@ -59,9 +60,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             children: [
               TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Атауы')),
               TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Бағасы')),
-              TextField(controller: imageController, decoration: const InputDecoration(labelText: 'Image path')),
-              TextField(controller: flowerController, decoration: const InputDecoration(labelText: 'Flower type')),
-              TextField(controller: stockController, decoration: const InputDecoration(labelText: 'Stock count')),
+              TextField(controller: imageController, decoration: const InputDecoration(labelText: 'Сурет жолы')),
+              TextField(controller: flowerController, decoration: const InputDecoration(labelText: 'Гүл түрі')),
+              TextField(controller: stockController, decoration: const InputDecoration(labelText: 'Қойма саны')),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 value: categoryId,
@@ -72,7 +73,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         ))
                     .toList(),
                 onChanged: (value) => categoryId = value,
-                decoration: const InputDecoration(labelText: 'Категория'),
+                decoration: const InputDecoration(labelText: 'Санат'),
               ),
               SwitchListTile(
                 value: inStock,
@@ -139,6 +140,24 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     }
   }
 
+  Future<void> _togglePopular(Product product) async {
+    if (_popularUpdating.contains(product.id)) return;
+    setState(() => _popularUpdating.add(product.id));
+    try {
+      await ApiService.updatePopular(product.id, !product.popular);
+      await _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ÒšÐ°Ñ‚Ðµ: $e'), backgroundColor: Colors.redAccent),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _popularUpdating.remove(product.id));
+      }
+    }
+  }
+
   Future<void> _deleteProduct(Product product) async {
     try {
       await ApiService.deleteProduct(product.id);
@@ -188,14 +207,28 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       ),
                     ),
                     title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${product.formattedPrice} • Stock: ${product.stockCount}'),
-                    trailing: Wrap(
-                      spacing: 6,
-                      children: [
-                        IconButton(
-                          icon: Icon(product.inStock ? Icons.check_circle : Icons.remove_circle, color: darkPink),
-                          onPressed: () => _toggleStock(product),
-                        ),
+                    subtitle: Text('${product.formattedPrice} • Қойма: ${product.stockCount}'),
+                      trailing: Wrap(
+                        spacing: 6,
+                        children: [
+                          IconButton(
+                            icon: _popularUpdating.contains(product.id)
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Icon(
+                                    product.popular ? Icons.star : Icons.star_border,
+                                    color: product.popular ? Colors.amber : Colors.black45,
+                                  ),
+                            onPressed:
+                                _popularUpdating.contains(product.id) ? null : () => _togglePopular(product),
+                          ),
+                          IconButton(
+                            icon: Icon(product.inStock ? Icons.check_circle : Icons.remove_circle, color: darkPink),
+                            onPressed: () => _toggleStock(product),
+                          ),
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.black54),
                           onPressed: () => _showEditor(product: product),

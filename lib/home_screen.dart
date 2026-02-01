@@ -75,7 +75,7 @@ class HomeScreen extends StatelessWidget {
                     );
                   },
                   child: const Text(
-                    "Ary qarai >",
+                    "Ары қарай >",
                     style: TextStyle(
                       color: Color.fromARGB(255, 255, 255, 255), 
                       fontSize: 20,

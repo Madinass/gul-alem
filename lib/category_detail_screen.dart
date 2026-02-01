@@ -1,17 +1,20 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'add_to_cart_sheet.dart';
 import 'product.dart';
 import 'services/api_service.dart';
 
 class CategoryDetailScreen extends StatefulWidget {
   final String categoryId;
-  final int categoryIndex;
   final String categoryName;
+  final String? occasionFilter;
+  final String? recipientFilter;
 
   const CategoryDetailScreen({
     super.key,
     required this.categoryId,
-    required this.categoryIndex,
     required this.categoryName,
+    this.occasionFilter,
+    this.recipientFilter,
   });
 
   @override
@@ -22,16 +25,22 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   final Color darkPink = const Color.fromARGB(255, 230, 0, 100);
   List<Product> products = [];
   bool _loading = true;
+  Set<String> _favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadFavorites();
   }
 
   Future<void> _loadProducts() async {
     try {
-      final data = await ApiService.fetchProducts(categoryId: widget.categoryId);
+      final data = await ApiService.fetchProducts(
+        categoryId: widget.categoryId,
+        occasion: widget.occasionFilter,
+        recipient: widget.recipientFilter,
+      );
       if (!mounted) return;
       setState(() {
         products = data;
@@ -40,6 +49,55 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await ApiService.fetchFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds = favorites.map((item) => item.id).toSet();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFavorite(Product product) async {
+    final isFav = _favoriteIds.contains(product.id);
+    try {
+      if (isFav) {
+        await ApiService.removeFavorite(product.id);
+      } else {
+        await ApiService.addFavorite(product.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        if (isFav) {
+          _favoriteIds.remove(product.id);
+        } else {
+          _favoriteIds.add(product.id);
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isFav ? 'Таңдаулыдан өшіру сәтсіз' : 'Таңдаулыға қосу сәтсіз')),
+      );
+    }
+  }
+
+  Future<void> _addToCart(Product product) async {
+    try {
+      await ApiService.addToCart(product.id, quantity: 1);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Себетке қосылды')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Себетке қосу сәтсіз')),
+      );
     }
   }
 
@@ -54,21 +112,10 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Категория ${widget.categoryIndex}', style: const TextStyle(color: Colors.black)),
+        title: Text(widget.categoryName, style: const TextStyle(color: Colors.black)),
       ),
       body: Column(
         children: [
-          const SizedBox(height: 20),
-          Icon(Icons.auto_awesome, size: 80, color: darkPink),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Text(
-              _categoryDescription(widget.categoryIndex),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
@@ -78,53 +125,80 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.8,
+                      childAspectRatio: 0.75,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              blurRadius: 6,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.asset(
-                                  product.imagePath,
-                                  fit: BoxFit.contain,
-                                  width: double.infinity,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Icon(Icons.local_florist, size: 50, color: darkPink),
-                                ),
+                      final isFav = _favoriteIds.contains(product.id);
+                      return InkWell(
+                        onTap: () => showAddToCartSheet(context, product),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                blurRadius: 6,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
+                            ],
+                          ),
+                          child: Stack(
+                            children: [
+                              Column(
                                 children: [
-                                  Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text(product.formattedPrice, style: TextStyle(color: darkPink)),
-                                  if (!product.inStock)
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 4),
-                                      child: Text('Out of stock', style: TextStyle(color: Colors.red, fontSize: 12)),
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.asset(
+                                        product.imagePath,
+                                        fit: BoxFit.contain,
+                                        width: double.infinity,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Icon(Icons.local_florist, size: 50, color: darkPink),
+                                      ),
                                     ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      children: [
+                                        Text(product.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 4),
+                                        Text(product.formattedPrice, style: TextStyle(color: darkPink)),
+                                        if (!product.inStock)
+                                          const Padding(
+                                            padding: EdgeInsets.only(top: 4),
+                                            child: Text('Қоймада жоқ',
+                                                style: TextStyle(color: Colors.red, fontSize: 12)),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
-                          ],
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: IconButton(
+                                  onPressed: () => _toggleFavorite(product),
+                                  icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: darkPink),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: IconButton(
+                                  onPressed: () => _addToCart(product),
+                                  icon: Icon(Icons.add_circle, color: darkPink),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -135,28 +209,4 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     );
   }
 
-  String _categoryDescription(int index) {
-    switch (index) {
-      case 1:
-        return 'Гүлдер санаты — күнделікті қуаныш пен мерекеге сай әсем гүлдер.';
-      case 2:
-        return 'Букеттер санаты — үйлесімі мінсіз, дайын композициялар.';
-      case 3:
-        return 'Раушан санаты — махаббат пен ілтипаттың классикалық таңдауы.';
-      case 4:
-        return 'Қызғалдақ санаты — көктемнің шуақты көңіл-күйін сыйлайды.';
-      case 5:
-        return 'Балаларға арналған — жұмсақ реңк, көңілді пішіндер.';
-      case 6:
-        return 'Ұсыныс жасауға — әсерлі әрі ұмытылмас букеттер.';
-      case 7:
-        return 'Сыйлыққа — кез келген жағдайға сай композициялар.';
-      case 8:
-        return 'Жеуге болатын — тәтті сыйлық пен әдемі безендіру.';
-      case 9:
-        return 'Шарлар — мерекені жарқыратып, көңіл күйді көтереді.';
-      default:
-        return 'Бұл санатта таңдаулы өнімдер жинақталған.';
-    }
-  }
 }

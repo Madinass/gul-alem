@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (loginInput.isEmpty) {
-      _showSnackBar("Логин немесе Email жазыңыз", Colors.redAccent);
+      _showSnackBar("Телефон нөмірін немесе эл. поштаны жазыңыз", Colors.redAccent);
       return;
     }
 
@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
     } catch (e) {
-      _showSnackBar("Логин немесе құпиясөз қате!", Colors.redAccent);
+      _showSnackBar("Телефон немесе құпиясөз қате!", Colors.redAccent);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -150,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _phoneController,
                           keyboardType: TextInputType.emailAddress,
                           decoration:
-                              _inputStyle("Телефон нөмірі немесе Email"),
+                              _inputStyle("Телефон нөмірі немесе эл. пошта"),
                         ),
                         const SizedBox(height: 16),
                         TextField(

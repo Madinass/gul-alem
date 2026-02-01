@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/api_service.dart';
+import 'product.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -12,6 +13,21 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   final Color darkPink = const Color(0xFFE60064);
   bool _loading = true;
   List<dynamic> orders = [];
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Күтуде';
+      case 'processing':
+        return 'Өңделуде';
+      case 'completed':
+        return 'Расталды';
+      case 'cancelled':
+        return 'Бас тартылды';
+      default:
+        return status;
+    }
+  }
 
   @override
   void initState() {
@@ -63,6 +79,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final items = (order['items'] as List<dynamic>? ?? []);
+                final total = (order['total'] ?? 0) is int ? order['total'] : (order['total'] as num).toInt();
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -71,15 +88,15 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Order #${order['_id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Тапсырыс №${order['_id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
-                        Text('Total: ${order['total']} тг'),
+                        Text('Жалпы: ${Product.formatPrice(total)}'),
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
                           children: items
                               .map((item) => Chip(
-                                    label: Text('${item['name']} x${item['quantity']}'),
+                                    label: Text('${item['name']} — ${item['quantity']} дана'),
                                   ))
                               .toList(),
                         ),
@@ -87,14 +104,14 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Status: ${order['status']}'),
+                            Text('Күйі: ${_statusLabel(order['status'])}'),
                             DropdownButton<String>(
                               value: order['status'],
                               items: const [
-                                DropdownMenuItem(value: 'pending', child: Text('pending')),
-                                DropdownMenuItem(value: 'processing', child: Text('processing')),
-                                DropdownMenuItem(value: 'completed', child: Text('completed')),
-                                DropdownMenuItem(value: 'cancelled', child: Text('cancelled')),
+                                DropdownMenuItem(value: 'pending', child: Text('Күтуде')),
+                                DropdownMenuItem(value: 'processing', child: Text('Өңделуде')),
+                                DropdownMenuItem(value: 'completed', child: Text('Расталды')),
+                                DropdownMenuItem(value: 'cancelled', child: Text('Бас тартылды')),
                               ],
                               onChanged: (value) {
                                 if (value != null) _updateStatus(order['_id'], value);

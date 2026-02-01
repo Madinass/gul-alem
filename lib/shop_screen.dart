@@ -54,7 +54,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        "Gul Alem",
+                        "Gul alem",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -207,23 +207,23 @@ class _ShopScreenState extends State<ShopScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: "Home",
+            label: "??? ???",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: "Search",
+            label: "?????",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border),
-            label: "Favorites",
+            label: "????????",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
-            label: "Cart",
+            label: "?????",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: "Profile",
+            label: "???? ???????",
           ),
         ],
       ),

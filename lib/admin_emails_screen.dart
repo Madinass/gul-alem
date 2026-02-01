@@ -38,10 +38,10 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Админ қосу'),
+        title: const Text('Әкімші қосу'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Email'),
+          decoration: const InputDecoration(labelText: 'Эл. пошта'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Бас тарту')),
@@ -86,7 +86,7 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Админдер', style: TextStyle(color: Colors.black)),
+        title: const Text('Әкімшілер', style: TextStyle(color: Colors.black)),
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
