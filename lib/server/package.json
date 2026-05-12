@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "migrate:product-images": "node scripts/migrate-product-images-to-cloudinary.js",
+    "migrate:product-images:dry": "node scripts/migrate-product-images-to-cloudinary.js --dry-run"
   },
   "keywords": [],
   "author": "",
