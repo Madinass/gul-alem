@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'filter_options.dart';
 
 class FilterOptionScreen extends StatelessWidget {
@@ -15,6 +16,7 @@ class FilterOptionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -42,7 +44,9 @@ class FilterOptionScreen extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFE60064) : const Color(0xFFFFE6EB),
+                  color: isSelected
+                      ? const Color(0xFFE60064)
+                      : const Color(0xFFFFE6EB),
                   width: 2,
                 ),
                 boxShadow: [
@@ -57,8 +61,11 @@ class FilterOptionScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      option.label,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      t.filterOption(option.id),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   if (isSelected)

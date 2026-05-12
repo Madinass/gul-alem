@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'forgot_password_screen.dart';
 import 'main_wrapper.dart';
 import 'register.dart';
@@ -30,12 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (loginInput.isEmpty) {
-      _showSnackBar("Телефон нөмірін немесе эл. поштаны жазыңыз", Colors.redAccent);
+      _showSnackBar(context.t.loginRequired, Colors.redAccent);
       return;
     }
 
     if (password.length < 8) {
-      _showSnackBar("Құпиясөз тым қысқа", Colors.redAccent);
+      _showSnackBar(context.t.passwordTooShort, Colors.redAccent);
       return;
     }
 
@@ -49,14 +50,14 @@ class _LoginScreenState extends State<LoginScreen> {
         email: data['email'] ?? '',
         name: data['name'] ?? '',
       );
-      _showSnackBar("Қош келдіңіз!", Colors.green);
+      _showSnackBar(context.t.welcome, Colors.green);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
     } catch (e) {
-      _showSnackBar("Телефон немесе құпиясөз қате!", Colors.redAccent);
+      _showSnackBar(context.t.loginFailed, Colors.redAccent);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -65,9 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   void _showForgotPasswordFlow(BuildContext context) {
@@ -78,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -130,16 +132,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(
-                              Icons.vpn_key,
-                              size: 100,
-                              color: Color(0xFFE91E63),
-                            ),
+                                  Icons.vpn_key,
+                                  size: 100,
+                                  color: Color(0xFFE91E63),
+                                ),
                           ),
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          "Кіріп, жақыныңызды қуантыңыз!",
-                          style: TextStyle(
+                        Text(
+                          t.loginSubtitle,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -149,14 +151,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _phoneController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration:
-                              _inputStyle("Телефон нөмірі немесе эл. пошта"),
+                          decoration: _inputStyle(t.phoneOrEmail),
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
                           obscureText: _isObscure,
-                          decoration: _inputStyle("Құпиясөз").copyWith(
+                          decoration: _inputStyle(t.password).copyWith(
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _isObscure
@@ -174,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: TextButton(
                             onPressed: () => _showForgotPasswordFlow(context),
                             child: Text(
-                              "Құпиясөзді ұмыттыңыз ба?",
+                              t.forgotPassword,
                               style: TextStyle(
                                 color: Colors.pink.shade400,
                                 fontSize: 13,
@@ -200,9 +201,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     Icons.login,
                                     color: Colors.pink,
                                   ),
-                                  label: const Text(
-                                    "Кіру",
-                                    style: TextStyle(
+                                  label: Text(
+                                    t.login,
+                                    style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
@@ -237,9 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   MaterialPageRoute(builder: (context) => const RegisterApp()),
                 ),
                 icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text(
-                  "Тіркелу",
-                  style: TextStyle(
+                label: Text(
+                  t.register,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -276,4 +277,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

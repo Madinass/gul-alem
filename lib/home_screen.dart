@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -6,6 +7,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       body: Stack(
         children: [
@@ -14,7 +16,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               Expanded(child: Container(color: Colors.white)), // Сол жақ - Ақ
               // Оң жақ - Түс F4CDCD-ға өзгертілді
-              Expanded(child: Container(color: const Color(0xFFF4CDCD))), 
+              Expanded(child: Container(color: const Color(0xFFF4CDCD))),
             ],
           ),
 
@@ -28,9 +30,9 @@ class HomeScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(width: 40), // Оңға жылжыту ені
-                    const Text(
-                      "Gul alem",
-                      style: TextStyle(
+                    Text(
+                      t.appName,
+                      style: const TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -60,7 +62,7 @@ class HomeScreen extends StatelessWidget {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     // Батырманың түсі F4CDCD болып қалды
-                    backgroundColor: const Color.fromARGB(255, 96, 91, 91), 
+                    backgroundColor: const Color.fromARGB(255, 96, 91, 91),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -74,10 +76,10 @@ class HomeScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text(
-                    "Ары қарай >",
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 255, 255, 255), 
+                  child: Text(
+                    "${t.next} >",
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 255, 255, 255),
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                     ),
@@ -108,7 +110,7 @@ class HomeScreen extends StatelessWidget {
 //             Expanded(child: Container(color: Colors.pink[100])),
 //           ],
 //           ),
-        
+
 //         Center(
 //           child:Column(
 //             mainAxisSize: MainAxisSize.min,

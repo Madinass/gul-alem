@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
+import 'widgets/product_image.dart';
 import 'product.dart'; // Product моделін алу үшін
 
 class ProductDetailScreen extends StatefulWidget {
@@ -38,6 +40,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   // Әр өнім беті
   Widget _buildProductPage(Product product, Size screenSize) {
+    final t = context.t;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -51,10 +54,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: product.color.withOpacity(0.3),
               borderRadius: BorderRadius.circular(25),
             ),
-            child: Image.asset(
-              product.imagePath,
+            child: ProductImage(
+              product: product,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Icon(
+              errorWidget: Icon(
                 Icons.local_florist,
                 color: darkPink.withOpacity(0.7),
                 size: 100,
@@ -64,7 +67,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(height: 25),
           // Өнім атауы
           Text(
-            product.name,
+            t.productName(product),
             style: const TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.bold,
@@ -74,7 +77,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(height: 10),
           // Бағасы
           Text(
-            product.formattedPrice,
+            t.priceValue(product.price),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
@@ -83,11 +86,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const SizedBox(height: 20),
           // Өнім сипаттамасы
-          const Text(
-            'Бұл гүл – нәзіктіктің және сұлулықтың символы. '
-            'Кез келген мерекеге немесе жақыныңызға сый ретінде мінсіз таңдау',
+          Text(
+            t.productDescription,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.black54),
+            style: const TextStyle(fontSize: 16, color: Colors.black54),
           ),
           const Spacer(),
           // Себетке қосу батырмасы
@@ -95,7 +97,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${product.name} себетке қосылды!'),
+                  content: Text(t.productAdded(t.productName(product))),
                   backgroundColor: darkPink,
                   behavior: SnackBarBehavior.floating,
                   duration: const Duration(seconds: 2),
@@ -103,9 +105,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               );
             },
             icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-            label: const Text(
-              'Себетке қосу',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            label: Text(
+              t.addToCart,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: accentPink,
@@ -143,10 +145,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: Icon(Icons.home, color: darkPink, size: 28), onPressed: () {}),
-          IconButton(icon: Icon(Icons.favorite_border, color: darkPink, size: 28), onPressed: () {}),
-          IconButton(icon: Icon(Icons.shopping_cart_outlined, color: darkPink, size: 28), onPressed: () {}),
-          IconButton(icon: Icon(Icons.person_outline, color: darkPink, size: 28), onPressed: () {}),
+          IconButton(
+            icon: Icon(Icons.home, color: darkPink, size: 28),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: Icon(Icons.favorite_border, color: darkPink, size: 28),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: Icon(Icons.shopping_cart_outlined, color: darkPink, size: 28),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: Icon(Icons.person_outline, color: darkPink, size: 28),
+            onPressed: () {},
+          ),
         ],
       ),
     );
@@ -155,6 +169,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final t = context.t;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -164,7 +179,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         title: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: Text(
-            widget.products[_currentIndex].name,
+            t.productName(widget.products[_currentIndex]),
             key: ValueKey(widget.products[_currentIndex].id),
             style: TextStyle(color: darkPink, fontWeight: FontWeight.bold),
           ),

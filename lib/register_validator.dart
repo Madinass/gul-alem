@@ -1,8 +1,5 @@
 class RegisterValidator {
-  static String? validatePassword(
-    String password,
-    String confirmPassword,
-  ) {
+  static String? validatePassword(String password, String confirmPassword) {
     if (password.length < 8) {
       return "Құпия сөз кемінде 8 таңбадан тұруы керек.";
     }
@@ -18,7 +15,6 @@ class RegisterValidator {
     return null;
   }
 }
-
 
 // class RegisterValidator {
 //   static String? validatePassword(

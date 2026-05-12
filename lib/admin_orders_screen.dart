@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'services/api_service.dart';
-import 'product.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -15,18 +15,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   List<dynamic> orders = [];
 
   String _statusLabel(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Күтуде';
-      case 'processing':
-        return 'Өңделуде';
-      case 'completed':
-        return 'Расталды';
-      case 'cancelled':
-        return 'Бас тартылды';
-      default:
-        return status;
-    }
+    return context.t.statusLabel(status);
   }
 
   @override
@@ -56,65 +45,99 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Қате: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(
+          content: Text(context.t.errorWith(e)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Тапсырыстар', style: TextStyle(color: Colors.black)),
+        title: Text(t.orders, style: const TextStyle(color: Colors.black)),
         centerTitle: true,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFE60064)),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: orders.length,
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final items = (order['items'] as List<dynamic>? ?? []);
-                final total = (order['total'] ?? 0) is int ? order['total'] : (order['total'] as num).toInt();
+                final total = (order['total'] ?? 0) is int
+                    ? order['total']
+                    : (order['total'] as num).toInt();
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Тапсырыс №${order['_id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          t.orderNumber(order['_id']),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(height: 6),
-                        Text('Жалпы: ${Product.formatPrice(total)}'),
+                        Text(t.totalWith(t.priceValue(total))),
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
                           children: items
-                              .map((item) => Chip(
-                                    label: Text('${item['name']} — ${item['quantity']} дана'),
-                                  ))
+                              .map(
+                                (item) => Chip(
+                                  label: Text(
+                                    t.itemQuantity(
+                                      item['name'],
+                                      item['quantity'],
+                                    ),
+                                  ),
+                                ),
+                              )
                               .toList(),
                         ),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Күйі: ${_statusLabel(order['status'])}'),
+                            Text(t.statusWith(_statusLabel(order['status']))),
                             DropdownButton<String>(
                               value: order['status'],
-                              items: const [
-                                DropdownMenuItem(value: 'pending', child: Text('Күтуде')),
-                                DropdownMenuItem(value: 'processing', child: Text('Өңделуде')),
-                                DropdownMenuItem(value: 'completed', child: Text('Расталды')),
-                                DropdownMenuItem(value: 'cancelled', child: Text('Бас тартылды')),
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'pending',
+                                  child: Text(t.pending),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'processing',
+                                  child: Text(t.processing),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'completed',
+                                  child: Text(t.completed),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'cancelled',
+                                  child: Text(t.cancelled),
+                                ),
                               ],
                               onChanged: (value) {
-                                if (value != null) _updateStatus(order['_id'], value);
+                                if (value != null) {
+                                  _updateStatus(order['_id'], value);
+                                }
                               },
                             ),
                           ],

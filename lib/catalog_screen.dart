@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'add_to_cart_sheet.dart';
+import 'app_language.dart';
 import 'category_detail_screen.dart';
 import 'category.dart';
 import 'filter_option_screen.dart';
 import 'filter_options.dart';
 import 'product.dart';
-import 'main_wrapper.dart';
 import 'services/api_service.dart';
+import 'widgets/product_image.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -45,6 +46,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       setState(() => _loading = false);
     }
   }
+
   Future<void> _loadFilteredProducts() async {
     if (_selectedOccasionId == null && _selectedRecipientId == null) {
       if (!mounted) return;
@@ -71,6 +73,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       setState(() => _loadingFilteredProducts = false);
     }
   }
+
   bool _isFilterCategory(Category category) {
     final path = category.imagePath.toLowerCase();
     return path.contains('cat_5') || path.contains('cat_6');
@@ -87,11 +90,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     final filterOne = _findFilterCategory('cat_5');
     final filterTwo = _findFilterCategory('cat_6');
-    final iconCategories = categories.where((category) => !_isFilterCategory(category)).toList();
-    final selectedOccasionLabel = labelForFilterOption(occasionFilterOptions, _selectedOccasionId);
-    final selectedRecipientLabel = labelForFilterOption(recipientFilterOptions, _selectedRecipientId);
+    final iconCategories = categories
+        .where((category) => !_isFilterCategory(category))
+        .toList();
+    final selectedOccasionLabel = _selectedOccasionId == null
+        ? null
+        : t.filterOption(_selectedOccasionId!);
+    final selectedRecipientLabel = _selectedRecipientId == null
+        ? null
+        : t.filterOption(_selectedRecipientId!);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -100,22 +110,30 @@ class _CatalogScreenState extends State<CatalogScreen> {
         elevation: 0,
         leading: const SizedBox.shrink(),
         leadingWidth: 0,
-        title: const Text(
-          '\u041a\u0430\u0442\u0430\u043b\u043e\u0433',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Text(
+          t.catalog,
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFE60064)),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '\u0421\u04af\u0437\u0433\u0456\u043b\u0435\u0440',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    t.filters,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -124,9 +142,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: _buildFilterCard(
-                            label: selectedRecipientLabel ?? '\u041a\u0456\u043c\u0433\u0435',
-                            title:
-                                '\u0411\u0443\u043a\u0435\u0442 \u043a\u0456\u043c\u0433\u0435 \u0430\u0440\u043d\u0430\u043b\u0493\u0430\u043d?',
+                            label: selectedRecipientLabel ?? t.forWhom,
+                            title: t.chooseRecipientTitle,
                             options: recipientFilterOptions,
                             selectedId: _selectedRecipientId,
                             category: filterOne,
@@ -139,8 +156,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: _buildFilterCard(
-                            label: selectedOccasionLabel ?? '\u0421\u0435\u0431\u0435\u043f',
-                            title: '\u0421\u0435\u0431\u0435\u0431\u0456\u043d \u0442\u0430\u04a3\u0434\u0430\u04a3\u044b\u0437',
+                            label: selectedOccasionLabel ?? t.occasion,
+                            title: t.chooseOccasionTitle,
                             options: occasionFilterOptions,
                             selectedId: _selectedOccasionId,
                             category: filterTwo,
@@ -150,30 +167,39 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       ),
                     ],
                   ),
-                  if (_selectedOccasionId != null || _selectedRecipientId != null) ...[
+                  if (_selectedOccasionId != null ||
+                      _selectedRecipientId != null) ...[
                     const SizedBox(height: 20),
-                    const Text(
-                      '\u0421\u04af\u0437\u0433\u0456 \u043d\u04d9\u0442\u0438\u0436\u0435\u043b\u0435\u0440\u0456',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      t.filterResults,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     if (_loadingFilteredProducts)
-                      const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+                      const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFE60064),
+                        ),
+                      )
                     else if (_filteredProducts.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text('\u0421\u04d9\u0439\u043a\u0435\u0441 \u04e9\u043d\u0456\u043c \u0442\u0430\u0431\u044b\u043b\u043c\u0430\u0434\u044b'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(t.noMatchingProducts),
                       )
                     else
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.75,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.75,
+                            ),
                         itemCount: _filteredProducts.length,
                         itemBuilder: (context, index) {
                           final product = _filteredProducts[index];
@@ -186,7 +212,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.06),
+                                    color: Colors.black.withValues(alpha: 0.06),
                                     blurRadius: 6,
                                     offset: const Offset(0, 3),
                                   ),
@@ -197,12 +223,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                   Expanded(
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(16),
-                                      child: Image.asset(
-                                        product.imagePath,
+                                      child: ProductImage(
+                                        product: product,
                                         fit: BoxFit.contain,
                                         width: double.infinity,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Icon(Icons.local_florist, size: 50, color: darkPink),
+                                        errorWidget: Icon(
+                                          Icons.local_florist,
+                                          size: 50,
+                                          color: darkPink,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -211,14 +240,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                     child: Column(
                                       children: [
                                         Text(
-                                          product.name,
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                          t.productName(product),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
-                                        Text(product.formattedPrice,
-                                            style: TextStyle(color: darkPink)),
+                                        Text(
+                                          t.priceValue(product.price),
+                                          style: TextStyle(color: darkPink),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -231,20 +264,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     const SizedBox(height: 20),
                   ],
                   const SizedBox(height: 24),
-                  const Text(
-                    '\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f\u043b\u0430\u0440',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    t.categories,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1,
+                        ),
                     itemCount: iconCategories.length,
                     itemBuilder: (context, index) {
                       final category = iconCategories[index];
@@ -285,11 +322,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: isSelected ? darkPink : navBarPink, width: 2),
+          border: Border.all(
+            color: isSelected ? darkPink : navBarPink,
+            width: 2,
+          ),
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
+              color: Colors.grey.withValues(alpha: 0.08),
               blurRadius: 6,
               offset: const Offset(0, 3),
             ),
@@ -307,12 +347,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           category.imagePath,
                           fit: BoxFit.cover,
                           alignment: const Alignment(0.35, 0),
-                          errorBuilder: (context, error, stackTrace) =>
-                              Icon(Icons.local_florist, size: 51, color: darkPink),
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.local_florist,
+                            size: 51,
+                            color: darkPink,
+                          ),
                         ),
                       ),
               ),
-              const SizedBox.shrink(),
+              _buildCategoryLabel(label, right: isSelected ? 42 : 24),
               if (isSelected)
                 Positioned(
                   top: 8,
@@ -326,6 +369,29 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
+  Widget _buildCategoryLabel(String label, {double right = 24}) {
+    return Positioned(
+      top: 20,
+      left: 20,
+      right: right,
+      child: Text(
+        label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFF2C2430),
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          height: 1.05,
+          shadows: [
+            Shadow(color: Colors.white, blurRadius: 8),
+            Shadow(color: Colors.white, offset: Offset(0, 1), blurRadius: 2),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryIcon(Category category) {
     return GestureDetector(
       onTap: () {
@@ -334,7 +400,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           MaterialPageRoute(
             builder: (context) => CategoryDetailScreen(
               categoryId: category.id,
-              categoryName: category.name,
+              categoryName: context.t.categoryName(category),
             ),
           ),
         );
@@ -346,7 +412,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 6,
               offset: const Offset(0, 3),
             ),
@@ -364,6 +430,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       Icon(Icons.local_florist, size: 36, color: darkPink),
                 ),
               ),
+              _buildCategoryLabel(context.t.categoryName(category)),
             ],
           ),
         ),
@@ -371,6 +438,3 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 }
-
-
-

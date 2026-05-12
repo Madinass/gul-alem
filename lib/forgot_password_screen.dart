@@ -1,12 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'services/api_service.dart';
+import 'app_language.dart';
 
-enum ForgotPasswordStep {
-  enterPhone,
-  verifyCode,
-  setNewPassword,
-  success,
-}
+enum ForgotPasswordStep { enterPhone, verifyCode, setNewPassword, success }
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -20,7 +16,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   String? _resetToken;
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -48,7 +45,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
           if (!emailOk) {
             setState(() {
-              _errorMessage = 'Дұрыс email енгізіңіз.';
+              _errorMessage = context.t.invalidEmail;
             });
             return;
           }
@@ -61,15 +58,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         case ForgotPasswordStep.verifyCode:
           if (_codeController.text.length != 6) {
             setState(() {
-              _errorMessage = 'Код 6 таңбадан тұруы керек.';
+              _errorMessage = context.t.codeLengthError;
             });
             return;
           }
-          final resetToken =
-              await ApiService.verifyResetCode(_emailController.text.trim(), _codeController.text);
+          final resetToken = await ApiService.verifyResetCode(
+            _emailController.text.trim(),
+            _codeController.text,
+          );
           if (resetToken.isEmpty) {
             setState(() {
-              _errorMessage = 'Код қате. Қайта көріңіз.';
+              _errorMessage = context.t.wrongCode;
             });
             return;
           }
@@ -80,22 +79,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           return;
 
         case ForgotPasswordStep.setNewPassword:
-          if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
+          if (_passwordController.text.isEmpty ||
+              _confirmPasswordController.text.isEmpty) {
             setState(() {
-              _errorMessage = 'Жаңа құпиясөзді енгізіп, растаңыз.';
+              _errorMessage = context.t.newPasswordRequired;
             });
             return;
           }
           if (_passwordController.text != _confirmPasswordController.text) {
             setState(() {
-              _errorMessage = 'Құпиясөздер сәйкес келмейді.';
+              _errorMessage = context.t.passwordsDoNotMatch;
             });
             return;
           }
           final password = _passwordController.text;
           if (password.length < 8 || password.length > 64) {
             setState(() {
-              _errorMessage = 'Құпиясөз 8-64 таңба аралығында болуы керек.';
+              _errorMessage = context.t.passwordLengthRule;
             });
             return;
           }
@@ -103,13 +103,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           final hasSpecial = RegExp(r'[^\w\s]').hasMatch(password);
           if (!hasNumber || !hasSpecial) {
             setState(() {
-              _errorMessage = 'Құпиясөзде кемінде бір сан және арнайы таңба болуы керек.';
+              _errorMessage = context.t.passwordSpecialRule;
             });
             return;
           }
           if (_resetToken == null || _resetToken!.isEmpty) {
             setState(() {
-              _errorMessage = 'Қалпына келтіру мерзімі өтті. Жаңа код сұраңыз.';
+              _errorMessage = context.t.passwordResetExpired;
             });
             return;
           }
@@ -130,7 +130,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Қате пайда болды. Қайта көріңіз.';
+        _errorMessage = context.t.genericTryAgain;
       });
     } finally {
       if (!mounted) return;
@@ -163,16 +163,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
   }
 
-  String get _title {
+  String _title(AppText t) {
     switch (_currentStep) {
       case ForgotPasswordStep.enterPhone:
-        return 'Email енгізу';
+        return t.forgotEmailTitle;
       case ForgotPasswordStep.verifyCode:
-        return 'Кодты тексеру';
+        return t.verifyCodeTitle;
       case ForgotPasswordStep.setNewPassword:
-        return 'Жаңа құпиясөз';
+        return t.newPasswordTitle;
       case ForgotPasswordStep.success:
-        return 'Сәтті';
+        return t.success;
     }
   }
 
@@ -190,19 +190,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildEmailInputStep() {
+    final t = context.t;
     return Column(
       children: [
-        const Text(
-          'Қалпына келтіру кодын алу үшін email енгізіңіз.',
+        Text(
+          t.enterEmailForReset,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black54),
+          style: const TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 20),
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
-            hintText: 'Email адресі',
+            hintText: t.emailAddress,
             errorText: _errorMessage,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
@@ -212,16 +213,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-        _buildActionButton('Код жіберу', Icons.send),
+        _buildActionButton(t.sendCode, Icons.send),
       ],
     );
   }
 
   Widget _buildCodeVerificationStep() {
+    final t = context.t;
     return Column(
       children: [
         Text(
-          '${_emailController.text} адресіне келген 6 таңбалы кодты енгізіңіз.',
+          t.codeSentTo(_emailController.text),
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.black54),
         ),
@@ -232,7 +234,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           textAlign: TextAlign.center,
           maxLength: 6,
           decoration: InputDecoration(
-            hintText: 'Код',
+            hintText: t.code,
             errorText: _errorMessage,
             counterText: '',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -243,25 +245,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-        _buildActionButton('Кодты растау', Icons.check_circle_outline),
+        _buildActionButton(t.verifyCode, Icons.check_circle_outline),
       ],
     );
   }
 
   Widget _buildNewPasswordStep() {
+    final t = context.t;
     return Column(
       children: [
-        const Text(
-          'Жаңа құпиясөзді енгізіп, растаңыз (8-64 таңба, 1 сан және арнайы таңба).',
+        Text(
+          t.newPasswordHelp,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black54),
+          style: const TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 20),
         TextField(
           controller: _passwordController,
           obscureText: true,
           decoration: InputDecoration(
-            hintText: 'Жаңа құпиясөз',
+            hintText: t.newPasswordTitle,
             errorText: _errorMessage,
             prefixIcon: const Icon(Icons.lock_outline, color: Colors.pink),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -276,7 +279,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: _confirmPasswordController,
           obscureText: true,
           decoration: InputDecoration(
-            hintText: 'Құпиясөзді растаңыз',
+            hintText: t.confirmPassword,
             prefixIcon: const Icon(Icons.lock_reset, color: Colors.pink),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
@@ -286,12 +289,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-        _buildActionButton('Құпиясөзді өзгерту', Icons.key_sharp),
+        _buildActionButton(t.changePassword, Icons.key_sharp),
       ],
     );
   }
 
   Widget _buildSuccessStep() {
+    final t = context.t;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -301,19 +305,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           size: 80,
         ),
         const SizedBox(height: 20),
-        const Text(
-          'Құпиясөз сәтті өзгертілді!',
+        Text(
+          t.passwordChanged,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.green,
+          ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Енді жаңа құпиясөзбен кіре аласыз.',
+        Text(
+          t.loginWithNewPassword,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black54),
+          style: const TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 30),
-        _buildActionButton('Кіру бетіне', Icons.arrow_back),
+        _buildActionButton(t.goToLogin, Icons.arrow_back),
       ],
     );
   }
@@ -343,13 +351,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.pink.shade50,
         elevation: 0,
         title: Text(
-          _title,
-          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          _title(t),
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),

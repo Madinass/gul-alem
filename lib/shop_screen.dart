@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'product.dart';
 import 'services/api_service.dart';
+import 'widgets/product_image.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -35,6 +37,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -53,9 +56,9 @@ class _ShopScreenState extends State<ShopScreen> {
                         height: 40,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        "Gul alem",
-                        style: TextStyle(
+                      Text(
+                        t.appName,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -76,7 +79,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.pink[50],
-                  hintText: "Іздеу...",
+                  hintText: t.searchPlaceholder,
                   prefixIcon: const Icon(Icons.search),
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   border: OutlineInputBorder(
@@ -89,15 +92,20 @@ class _ShopScreenState extends State<ShopScreen> {
 
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFE60064),
+                      ),
+                    )
                   : GridView.builder(
                       padding: const EdgeInsets.all(16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.75,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.75,
+                          ),
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final product = products[index];
@@ -117,13 +125,16 @@ class _ShopScreenState extends State<ShopScreen> {
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
-                                child: Image.asset(
-                                  product.imagePath,
+                                child: ProductImage(
+                                  product: product,
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(Icons.local_florist, size: 50, color: Colors.pink),
+                                  errorWidget: const Icon(
+                                    Icons.local_florist,
+                                    size: 50,
+                                    color: Colors.pink,
+                                  ),
                                 ),
                               ),
 
@@ -137,7 +148,10 @@ class _ShopScreenState extends State<ShopScreen> {
                                   ),
                                   child: const Padding(
                                     padding: EdgeInsets.all(4.0),
-                                    child: Icon(Icons.favorite_border, color: Colors.red),
+                                    child: Icon(
+                                      Icons.favorite_border,
+                                      color: Colors.red,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -148,10 +162,11 @@ class _ShopScreenState extends State<ShopScreen> {
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        product.name,
+                                        t.productName(product),
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -160,20 +175,30 @@ class _ShopScreenState extends State<ShopScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: Colors.grey[200],
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
-                                            child: Text(product.formattedPrice),
+                                            child: Text(
+                                              t.priceValue(product.price),
+                                            ),
                                           ),
                                           Container(
                                             decoration: BoxDecoration(
-                                              color: product.inStock ? Colors.green : Colors.grey,
-                                              borderRadius: BorderRadius.circular(8),
+                                              color: product.inStock
+                                                  ? Colors.green
+                                                  : Colors.grey,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             child: IconButton(
                                               onPressed: () {},
@@ -204,30 +229,29 @@ class _ShopScreenState extends State<ShopScreen> {
         selectedItemColor: Colors.pink,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "??? ???",
+            icon: const Icon(Icons.home),
+            label: t.appName,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: "?????",
+            icon: const Icon(Icons.search),
+            label: t.catalog,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            label: "????????",
+            icon: const Icon(Icons.favorite_border),
+            label: t.favorites,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: "?????",
+            icon: const Icon(Icons.shopping_cart),
+            label: t.cart,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "???? ???????",
+            icon: const Icon(Icons.person),
+            label: t.profile,
           ),
         ],
       ),
     );
   }
 }
-

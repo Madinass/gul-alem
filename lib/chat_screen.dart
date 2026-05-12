@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'services/api_service.dart';
 
 class ChatSession {
@@ -19,8 +20,9 @@ class ChatSession {
       id: json['id'] ?? '',
       title: json['title'] ?? 'Жаңа чат',
       lastMessagePreview: json['lastMessagePreview'] ?? '',
-      lastMessageAt:
-          json['lastMessageAt'] != null ? DateTime.tryParse(json['lastMessageAt']) : null,
+      lastMessageAt: json['lastMessageAt'] != null
+          ? DateTime.tryParse(json['lastMessageAt'])
+          : null,
     );
   }
 }
@@ -36,7 +38,9 @@ class ChatMessage {
     return ChatMessage(
       role: json['role'] ?? 'assistant',
       message: json['message'] ?? '',
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'])
+          : null,
     );
   }
 }
@@ -49,11 +53,14 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  static const _advisorTitle = 'ЖИ кеңесші';
+  static const _newChatTitle = 'Жаңа чат';
+
   final TextEditingController _messageController = TextEditingController();
   final List<ChatMessage> _messages = [];
   List<ChatSession> _sessions = [];
   String? _activeSessionId;
-  String _activeTitle = 'ЖИ кеңесші';
+  String _activeTitle = _advisorTitle;
   bool _isLoadingSessions = false;
   bool _isLoadingMessages = false;
   bool _isSending = false;
@@ -94,7 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() {
         _activeSessionId = sessionId;
-        _activeTitle = session?['title'] ?? 'ЖИ кеңесші';
+        _activeTitle = session?['title'] ?? _advisorTitle;
         _messages
           ..clear()
           ..addAll(items.map((item) => ChatMessage.fromJson(item)));
@@ -112,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() {
         _activeSessionId = session['id'];
-        _activeTitle = session['title'] ?? 'ЖИ кеңесші';
+        _activeTitle = session['title'] ?? _advisorTitle;
         _messages.clear();
       });
       await _loadSessions();
@@ -137,24 +144,28 @@ class _ChatScreenState extends State<ChatScreen> {
         if (!mounted) return;
         setState(() {
           _activeSessionId = sessionId;
-          _activeTitle = session['title'] ?? 'ЖИ кеңесші';
+          _activeTitle = session['title'] ?? _advisorTitle;
         });
       }
 
-      final reply = await ApiService.sendChatMessage(userText, sessionId: sessionId);
+      final reply = await ApiService.sendChatMessage(
+        userText,
+        sessionId: sessionId,
+      );
       if (!mounted) return;
       setState(() {
-        _messages.add(ChatMessage(role: 'assistant', message: reply['message'] ?? ''));
+        _messages.add(
+          ChatMessage(role: 'assistant', message: reply['message'] ?? ''),
+        );
       });
       await _loadSessions();
     } catch (e) {
       debugPrint("AI Error: $e");
       if (!mounted) return;
       setState(() {
-        _messages.add(ChatMessage(
-          role: 'assistant',
-          message: 'Қате болды. Интернетті немесе API кілтін тексеріңіз.',
-        ));
+        _messages.add(
+          ChatMessage(role: 'assistant', message: context.t.aiError),
+        );
       });
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -164,19 +175,29 @@ class _ChatScreenState extends State<ChatScreen> {
   void _exitToList() {
     setState(() {
       _activeSessionId = null;
-      _activeTitle = 'ЖИ кеңесші';
+      _activeTitle = _advisorTitle;
       _messages.clear();
     });
     _loadSessions();
   }
 
+  String _localizedTitle(AppText t, String title) {
+    if (title == _advisorTitle) return t.aiAdvisor;
+    if (title == _newChatTitle) return t.newChat;
+    return title;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     final isChatOpen = _activeSessionId != null;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_activeTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          _localizedTitle(t, _activeTitle),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.pink,
         elevation: 0.5,
@@ -213,18 +234,26 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: _startNewChat,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.pink,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Жаңа чат', style: TextStyle(color: Colors.white)),
+              label: Text(
+                context.t.newChat,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ),
         ),
         Expanded(
           child: _sessions.isEmpty
-              ? const Center(
-                  child: Text('Әзірге чат жоқ', style: TextStyle(color: Colors.grey)),
+              ? Center(
+                  child: Text(
+                    context.t.noChatsYet,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                 )
               : ListView.separated(
                   itemCount: _sessions.length,
@@ -232,10 +261,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) {
                     final session = _sessions[index];
                     return ListTile(
-                      title: Text(session.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      title: Text(
+                        _localizedTitle(context.t, session.title),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       subtitle: Text(
                         session.lastMessagePreview.isEmpty
-                            ? 'Жаңа чат'
+                            ? context.t.newChat
                             : session.lastMessagePreview,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -253,17 +286,18 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildChatView() {
     final messages = List<ChatMessage>.from(_messages);
     if (messages.isEmpty) {
-      messages.add(ChatMessage(
-        role: 'assistant',
-        message: 'Сәлем! Гүлдер туралы қандай сұрағыңыз бар?',
-      ));
+      messages.add(
+        ChatMessage(role: 'assistant', message: context.t.chatGreeting),
+      );
     }
 
     return Column(
       children: [
         Expanded(
           child: _isLoadingMessages
-              ? const Center(child: CircularProgressIndicator(color: Colors.pink))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.pink),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
@@ -291,7 +325,9 @@ class _ChatScreenState extends State<ChatScreen> {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
@@ -316,7 +352,9 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
       ),
       child: SafeArea(
         child: Row(
@@ -325,10 +363,13 @@ class _ChatScreenState extends State<ChatScreen> {
               child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: 'Сұрағыңызды қойыңыз...',
+                  hintText: context.t.askQuestionHint,
                   filled: true,
                   fillColor: Colors.grey.shade50,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
                     borderSide: BorderSide.none,

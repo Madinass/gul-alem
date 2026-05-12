@@ -1,11 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_language.dart';
 import 'home_screen.dart';
-import 'login_screen.dart';
-import 'register.dart';
-import 'bas_bet_screen.dart';
-import 'catalog_screen.dart'; 
 import 'main_wrapper.dart';
 
 Future<void> main() async {
@@ -13,7 +9,14 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('auth_token');
   final hasSession = token != null && token.isNotEmpty;
-  runApp(MyApp(initialHasSession: hasSession));
+  final languageController = AppLanguageController();
+  await languageController.load();
+  runApp(
+    AppLanguageScope(
+      controller: languageController,
+      child: MyApp(initialHasSession: hasSession),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,10 +26,60 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = ThemeData(
+      fontFamily: 'Rubik',
+      fontFamilyFallback: const ['NotoSans'],
+    );
+    final textTheme = _bolderTextTheme(baseTheme.textTheme);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: baseTheme.copyWith(
+        textTheme: textTheme,
+        primaryTextTheme: _bolderTextTheme(baseTheme.primaryTextTheme),
+      ),
       home: initialHasSession ? const MainWrapper() : const HomeScreen(),
     );
   }
 }
 
+TextTheme _bolderTextTheme(TextTheme textTheme) {
+  TextStyle? bolder(TextStyle? style) {
+    if (style == null) return null;
+    final weight = _strongerFontWeight(style.fontWeight);
+    return style.copyWith(
+      fontWeight: weight,
+      fontVariations: [FontVariation('wght', _fontVariationWeight(weight))],
+    );
+  }
+
+  return textTheme.copyWith(
+    displayLarge: bolder(textTheme.displayLarge),
+    displayMedium: bolder(textTheme.displayMedium),
+    displaySmall: bolder(textTheme.displaySmall),
+    headlineLarge: bolder(textTheme.headlineLarge),
+    headlineMedium: bolder(textTheme.headlineMedium),
+    headlineSmall: bolder(textTheme.headlineSmall),
+    titleLarge: bolder(textTheme.titleLarge),
+    titleMedium: bolder(textTheme.titleMedium),
+    titleSmall: bolder(textTheme.titleSmall),
+    bodyLarge: bolder(textTheme.bodyLarge),
+    bodyMedium: bolder(textTheme.bodyMedium),
+    bodySmall: bolder(textTheme.bodySmall),
+    labelLarge: bolder(textTheme.labelLarge),
+    labelMedium: bolder(textTheme.labelMedium),
+    labelSmall: bolder(textTheme.labelSmall),
+  );
+}
+
+FontWeight _strongerFontWeight(FontWeight? weight) {
+  if (weight == null || weight.index <= FontWeight.w400.index) {
+    return FontWeight.w600;
+  }
+  if (weight == FontWeight.w500) return FontWeight.w600;
+  return weight;
+}
+
+double _fontVariationWeight(FontWeight weight) {
+  return (weight.index + 1) * 100.0;
+}

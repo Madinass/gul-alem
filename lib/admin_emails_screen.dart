@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'services/api_service.dart';
 
 class AdminEmailsScreen extends StatefulWidget {
@@ -34,21 +35,25 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
   }
 
   Future<void> _addAdmin() async {
+    final t = context.t;
     final controller = TextEditingController();
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Әкімші қосу'),
+        title: Text(t.adminAdd),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Эл. пошта'),
+          decoration: InputDecoration(labelText: t.email),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Бас тарту')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.cancel),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: darkPink),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Сақтау'),
+            child: Text(t.save),
           ),
         ],
       ),
@@ -62,7 +67,10 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Қате: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(
+          content: Text(t.errorWith(e)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -74,19 +82,23 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Қате: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(
+          content: Text(context.t.errorWith(e)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Әкімшілер', style: TextStyle(color: Colors.black)),
+        title: Text(t.admins, style: const TextStyle(color: Colors.black)),
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
@@ -95,7 +107,9 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFE60064)),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: admins.length,
@@ -104,9 +118,14 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
                 final email = admin['email']?.toString() ?? '';
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: ListTile(
-                    leading: const Icon(Icons.admin_panel_settings, color: Color(0xFFE60064)),
+                    leading: const Icon(
+                      Icons.admin_panel_settings,
+                      color: Color(0xFFE60064),
+                    ),
                     title: Text(email),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),

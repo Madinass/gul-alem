@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'cart_item.dart';
-import 'product.dart';
 import 'services/api_service.dart';
 import 'payment_method_form_screen.dart';
 
@@ -8,7 +8,11 @@ class CartPaymentScreen extends StatefulWidget {
   final List<CartItem> items;
   final int total;
 
-  const CartPaymentScreen({super.key, required this.items, required this.total});
+  const CartPaymentScreen({
+    super.key,
+    required this.items,
+    required this.total,
+  });
 
   @override
   State<CartPaymentScreen> createState() => _CartPaymentScreenState();
@@ -55,36 +59,37 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
   }
 
   Future<void> _confirmPayment() async {
+    final t = context.t;
     if (_methods.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Алдымен төлем әдісін қосыңыз')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addPaymentMethodFirst)));
       return;
     }
     if (_selectedId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Төлем әдісін таңдаңыз')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.choosePaymentMethod)));
       return;
     }
     setState(() => _processing = true);
     try {
       await ApiService.createOrder(widget.items);
       await ApiService.createNotification(
-        title: 'Төлем сәтті өтті',
-        message: 'Тапсырыс қабылданды',
+        title: t.paymentSuccessTitle,
+        message: t.orderAccepted,
         type: 'payment',
       );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Сәтті'),
-          content: const Text('Тапсырыс сәтті жасалды'),
+          title: Text(t.success),
+          content: Text(t.orderCreated),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Жабу'),
+              child: Text(t.close),
             ),
           ],
         ),
@@ -93,9 +98,9 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
       Navigator.pop(context);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Төлем жасау сәтсіз')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.paymentFailed)));
     } finally {
       if (mounted) setState(() => _processing = false);
     }
@@ -103,16 +108,22 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Төлем әдісі', style: TextStyle(color: Colors.black)),
+        title: Text(
+          t.paymentMethod,
+          style: const TextStyle(color: Colors.black),
+        ),
         centerTitle: true,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFE60064)),
+            )
           : Column(
               children: [
                 Expanded(
@@ -122,20 +133,40 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                         ? Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.credit_card, size: 60, color: Colors.black54),
+                              const Icon(
+                                Icons.credit_card,
+                                size: 60,
+                                color: Colors.black54,
+                              ),
                               const SizedBox(height: 16),
-                              const Text('Төлем әдісі жоқ', style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                t.noPaymentMethods,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(height: 8),
-                              const Text('Төлем әдісі жоқ па?', style: TextStyle(color: Colors.black54)),
+                              Text(
+                                t.noPaymentMethodsQuestion,
+                                style: const TextStyle(color: Colors.black54),
+                              ),
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: darkPink,
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                                 onPressed: _addMethod,
-                                child: const Text('Қосу', style: TextStyle(color: Colors.white)),
+                                child: Text(
+                                  t.add,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ),
                             ],
                           )
@@ -151,17 +182,23 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFFFE6EB)),
+                                  border: Border.all(
+                                    color: const Color(0xFFFFE6EB),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
                                     Radio<String>(
                                       value: id,
                                       groupValue: _selectedId,
-                                      onChanged: (value) => setState(() => _selectedId = value),
+                                      onChanged: (value) =>
+                                          setState(() => _selectedId = value),
                                       activeColor: darkPink,
                                     ),
-                                    const Icon(Icons.credit_card, color: Colors.black54),
+                                    const Icon(
+                                      Icons.credit_card,
+                                      color: Colors.black54,
+                                    ),
                                     const SizedBox(width: 12),
                                     Text('**** **** **** $last4'),
                                   ],
@@ -180,7 +217,11 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                       topRight: Radius.circular(20),
                     ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, -2)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, -2),
+                      ),
                     ],
                   ),
                   child: Row(
@@ -189,11 +230,18 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Жалпы сома', style: TextStyle(color: Colors.black54)),
+                            Text(
+                              t.totalAmount,
+                              style: const TextStyle(color: Colors.black54),
+                            ),
                             const SizedBox(height: 6),
                             Text(
-                              Product.formatPrice(widget.total),
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkPink),
+                              t.priceValue(widget.total),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: darkPink,
+                              ),
                             ),
                           ],
                         ),
@@ -201,17 +249,28 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: darkPink,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         onPressed: _processing ? null : _confirmPayment,
                         child: _processing
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
-                            : const Text('Төлем жасау', style: TextStyle(color: Colors.white)),
+                            : Text(
+                                t.pay,
+                                style: const TextStyle(color: Colors.white),
+                              ),
                       ),
                     ],
                   ),

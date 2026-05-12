@@ -1,9 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'add_to_cart_sheet.dart';
 import 'product.dart';
 import 'chat_screen.dart';
 import 'services/api_service.dart';
 import 'notification_screen.dart';
+import 'app_language.dart';
+import 'widgets/product_image.dart';
 
 class BasBetScreen extends StatefulWidget {
   const BasBetScreen({super.key});
@@ -12,22 +15,32 @@ class BasBetScreen extends StatefulWidget {
   State<BasBetScreen> createState() => _BasBetScreenState();
 }
 
-class _BasBetScreenState extends State<BasBetScreen> {
+class _BasBetScreenState extends State<BasBetScreen>
+    with SingleTickerProviderStateMixin {
   final Color darkPink = const Color(0xFFE60064);
   final Color lightPink = const Color(0xFFFFE6EB);
 
   final TextEditingController _searchController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
+  late final AnimationController _aboutUsRibbonController;
 
   List<Product> popularProducts = [];
   List<Product> allProducts = [];
   bool _loadingPopular = true;
   bool _loadingAll = true;
+  bool _photoSearching = false;
+  bool _photoSearchActive = false;
+  List<Product> _photoSearchResults = [];
   Set<String> _favoriteIds = {};
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _aboutUsRibbonController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 14),
+    )..repeat();
     _loadPopular();
     _loadAllProducts();
     _loadFavorites();
@@ -35,6 +48,7 @@ class _BasBetScreenState extends State<BasBetScreen> {
 
   @override
   void dispose() {
+    _aboutUsRibbonController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -78,6 +92,7 @@ class _BasBetScreenState extends State<BasBetScreen> {
   }
 
   Future<void> _toggleFavorite(Product product) async {
+    final t = context.t;
     final isFav = _favoriteIds.contains(product.id);
     try {
       if (isFav) {
@@ -96,24 +111,122 @@ class _BasBetScreenState extends State<BasBetScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isFav ? 'Таңдаулыдан өшіру сәтсіз' : 'Таңдаулыға қосу сәтсіз')),
+        SnackBar(
+          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
+        ),
       );
     }
   }
 
   Future<void> _addToCart(Product product) async {
+    final t = context.t;
     try {
       await ApiService.addToCart(product.id, quantity: 1);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Себетке қосылды')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Себетке қосу сәтсіз')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
     }
+  }
+
+  Future<void> _showPhotoSourceSheet() async {
+    if (_photoSearching) return;
+    final t = context.t;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      t.choosePhotoSource,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.photo_camera, color: darkPink),
+                  title: Text(t.camera),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: Icon(Icons.photo_library, color: darkPink),
+                  title: Text(t.gallery),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || source == null) return;
+    await _searchByPhoto(source);
+  }
+
+  Future<void> _searchByPhoto(ImageSource source) async {
+    final t = context.t;
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 82,
+      );
+      if (image == null) return;
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _photoSearching = true;
+        _photoSearchActive = true;
+        _photoSearchResults = [];
+        _searchQuery = '';
+        _searchController.clear();
+      });
+
+      final results = await ApiService.searchProductsByPhoto(bytes);
+      if (!mounted) return;
+      setState(() {
+        _photoSearchResults = results;
+        _photoSearching = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _photoSearching = false;
+        _photoSearchActive = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.photoSearchFailed)));
+    }
+  }
+
+  void _clearPhotoSearch() {
+    setState(() {
+      _photoSearching = false;
+      _photoSearchActive = false;
+      _photoSearchResults = [];
+    });
   }
 
   List<String> _tokenize(String input) {
@@ -124,23 +237,27 @@ class _BasBetScreenState extends State<BasBetScreen> {
         .toList();
   }
 
-  bool _matchesSearch(Product product, String query) {
+  bool _matchesSearch(Product product, String query, AppText t) {
     final queryWords = _tokenize(query);
     if (queryWords.isEmpty) return false;
-    final normalizedName = product.name.toLowerCase();
+    final normalizedName = '${product.name} ${t.productName(product)}'
+        .toLowerCase();
     for (final word in queryWords) {
       if (normalizedName.contains(word)) return true;
     }
     return false;
   }
 
-  List<Product> get _searchResults {
+  List<Product> _searchResults(AppText t) {
     if (_searchQuery.trim().isEmpty) return [];
-    return allProducts.where((product) => _matchesSearch(product, _searchQuery)).toList();
+    return allProducts
+        .where((product) => _matchesSearch(product, _searchQuery, t))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -155,8 +272,14 @@ class _BasBetScreenState extends State<BasBetScreen> {
           ),
         ),
         title: Row(
-          children: const [
-            Text('Gul alem', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          children: [
+            Text(
+              t.appName,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         centerTitle: false,
@@ -166,17 +289,21 @@ class _BasBetScreenState extends State<BasBetScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
               );
             },
-          )
+          ),
         ],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             _buildSearchBar(),
-            if (_searchQuery.trim().isNotEmpty) ...[
+            if (_photoSearchActive || _photoSearching) ...[
+              _buildPhotoSearchResults(),
+            ] else if (_searchQuery.trim().isNotEmpty) ...[
               _buildSearchResults(),
             ] else ...[
               _buildPopularHeader(),
@@ -194,18 +321,53 @@ class _BasBetScreenState extends State<BasBetScreen> {
   }
 
   Widget _buildSearchBar() {
+    final t = context.t;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Container(
-        decoration: BoxDecoration(color: lightPink, borderRadius: BorderRadius.circular(15)),
+        decoration: BoxDecoration(
+          color: lightPink,
+          borderRadius: BorderRadius.circular(15),
+        ),
         child: TextField(
           controller: _searchController,
-          onChanged: (value) => setState(() => _searchQuery = value),
-          decoration: const InputDecoration(
-            hintText: '\u0413\u04af\u043b\u0434\u0435\u0440\u0434\u0456 \u0456\u0437\u0434\u0435\u0443...',
-            prefixIcon: Icon(Icons.search, color: Color(0xFFE60064)),
+          onChanged: (value) => setState(() {
+            _searchQuery = value;
+            if (value.trim().isNotEmpty) {
+              _photoSearchActive = false;
+              _photoSearchResults = [];
+            }
+          }),
+          decoration: InputDecoration(
+            hintText: t.searchFlowers,
+            prefixIcon: const Icon(Icons.search, color: Color(0xFFE60064)),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_photoSearchActive)
+                  IconButton(
+                    tooltip: t.clearPhotoSearch,
+                    onPressed: _clearPhotoSearch,
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                  ),
+                IconButton(
+                  tooltip: t.searchByPhoto,
+                  onPressed: _photoSearching ? null : _showPhotoSourceSheet,
+                  icon: _photoSearching
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: darkPink,
+                          ),
+                        )
+                      : Icon(Icons.photo_camera_outlined, color: darkPink),
+                ),
+              ],
+            ),
             border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 15),
+            contentPadding: const EdgeInsets.symmetric(vertical: 15),
           ),
         ),
       ),
@@ -213,20 +375,26 @@ class _BasBetScreenState extends State<BasBetScreen> {
   }
 
   Widget _buildSearchResults() {
+    final t = context.t;
     if (_loadingAll) {
       return const Padding(
         padding: EdgeInsets.only(top: 10),
-        child: Center(child: CircularProgressIndicator(color: Color(0xFFE60064))),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFE60064)),
+        ),
       );
     }
 
-    final results = _searchResults;
+    final results = _searchResults(t);
     if (results.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text('Іздеу нәтижесі табылмады', style: TextStyle(color: Colors.grey)),
+          child: Text(
+            t.noSearchResults,
+            style: const TextStyle(color: Colors.grey),
+          ),
         ),
       );
     }
@@ -236,123 +404,204 @@ class _BasBetScreenState extends State<BasBetScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Іздеу нәтижелері',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          Text(
+            t.searchResults,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              childAspectRatio: 0.78,
-            ),
-            itemCount: results.length,
-            itemBuilder: (context, index) {
-              final product = results[index];
-              return GestureDetector(
-                onTap: () => showAddToCartSheet(context, product),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: lightPink),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      Column(
-                        children: [
-                          const SizedBox(height: 10),
-                          Expanded(
-                            child: Image.asset(
-                              product.imagePath,
-                              fit: BoxFit.contain,
-                              errorBuilder: (c, e, s) =>
-                                  Icon(Icons.image, color: lightPink, size: 50),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              product.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            product.formattedPrice,
-                            style: TextStyle(color: darkPink, fontWeight: FontWeight.w600),
-                          ),
-                          IconButton(
-                            onPressed: () => _addToCart(product),
-                            icon: Icon(Icons.add_circle, color: darkPink, size: 22),
-                          ),
-                        ],
-                      ),
-                      if (!product.inStock)
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Text('Қоймада жоқ',
-                                style: TextStyle(color: Colors.white, fontSize: 10)),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+          _buildProductResultGrid(results),
           const SizedBox(height: 20),
         ],
       ),
     );
   }
 
+  Widget _buildPhotoSearchResults() {
+    final t = context.t;
+    if (_photoSearching) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          children: [
+            CircularProgressIndicator(color: darkPink),
+            const SizedBox(height: 12),
+            Text(
+              t.photoSearchLoading,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_photoSearchResults.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            t.photoSearchNoResults,
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.photoSearchResults,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 12),
+          _buildProductResultGrid(_photoSearchResults),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductResultGrid(List<Product> products) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.78,
+      ),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        return GestureDetector(
+          onTap: () => showAddToCartSheet(context, product),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: lightPink),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ProductImage(
+                        product: product,
+                        fit: BoxFit.contain,
+                        errorWidget: Icon(
+                          Icons.image,
+                          color: lightPink,
+                          size: 50,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        context.t.productName(product),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.t.priceValue(product.price),
+                      style: TextStyle(
+                        color: darkPink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _addToCart(product),
+                      icon: Icon(Icons.add_circle, color: darkPink, size: 22),
+                    ),
+                  ],
+                ),
+                if (!product.inStock)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        context.t.outOfStock,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildPopularHeader() {
+    final t = context.t;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Танымал гүлдер',
-            style: TextStyle(color: darkPink, fontWeight: FontWeight.bold, fontSize: 18),
+            t.popularFlowers,
+            style: TextStyle(
+              color: darkPink,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
-          const Text('Толығырақ', style: TextStyle(color: Colors.grey, fontSize: 14)),
+          Text(
+            t.more,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildPopularList() {
+    final t = context.t;
     if (_loadingPopular) {
       return const SizedBox(
         height: 280,
-        child: Center(child: CircularProgressIndicator(color: Color(0xFFE60064))),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFE60064)),
+        ),
       );
     }
 
     if (popularProducts.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 280,
-        child: Center(child: Text('Өнімдер табылмады')),
+        child: Center(child: Text(t.productsNotFound)),
       );
     }
 
@@ -374,7 +623,12 @@ class _BasBetScreenState extends State<BasBetScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: lightPink),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Stack(
                 children: [
@@ -382,18 +636,29 @@ class _BasBetScreenState extends State<BasBetScreen> {
                     children: [
                       const SizedBox(height: 10),
                       Expanded(
-                        child: Image.asset(
-                          product.imagePath,
+                        child: ProductImage(
+                          product: product,
                           fit: BoxFit.contain,
-                          errorBuilder: (c, e, s) =>
-                              Icon(Icons.image, color: lightPink, size: 50),
+                          errorWidget: Icon(
+                            Icons.image,
+                            color: lightPink,
+                            size: 50,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
-                      Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        t.productName(product),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 2),
-                      Text(product.formattedPrice,
-                          style: TextStyle(color: darkPink, fontWeight: FontWeight.w600)),
+                      Text(
+                        t.priceValue(product.price),
+                        style: TextStyle(
+                          color: darkPink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       IconButton(
                         onPressed: () => _addToCart(product),
                         icon: Icon(Icons.add_circle, color: darkPink, size: 22),
@@ -405,7 +670,11 @@ class _BasBetScreenState extends State<BasBetScreen> {
                     right: 12,
                     child: IconButton(
                       onPressed: () => _toggleFavorite(product),
-                      icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: darkPink, size: 20),
+                      icon: Icon(
+                        isFav ? Icons.favorite : Icons.favorite_border,
+                        color: darkPink,
+                        size: 20,
+                      ),
                     ),
                   ),
                   if (!product.inStock)
@@ -413,13 +682,21 @@ class _BasBetScreenState extends State<BasBetScreen> {
                       bottom: 60,
                       right: 10,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text('Қоймада жоқ',
-                            style: TextStyle(color: Colors.white, fontSize: 10)),
+                        child: Text(
+                          t.outOfStock,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -432,42 +709,80 @@ class _BasBetScreenState extends State<BasBetScreen> {
   }
 
   Widget _buildAboutUsWithImages() {
+    final t = context.t;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 20, bottom: 12),
-          child: Text('Біз жайлы', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Padding(
+          padding: const EdgeInsets.only(left: 20, bottom: 12),
+          child: Text(
+            t.aboutUs,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
         ),
         SizedBox(
           height: 140,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(right: 20),
-            children: [
-              _infoCard(
-                'Жаңа гүлдер',
-                'assets/us_1.png',
-                alignment: const Alignment(0, -0.3),
-              ),
-              _infoCard(
-                'Жылдам жеткізу',
-                'assets/us_2.png',
-                alignment: const Alignment(0, -0.4),
-              ),
-              _infoCard(
-                'Сапа кепілдігі',
-                'assets/us_3.png',
-                alignment: const Alignment(0, -0.2),
-              ),
-            ],
+          child: ClipRect(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const ribbonWidth = 720.0;
+                final copies = (constraints.maxWidth / ribbonWidth).ceil() + 2;
+
+                return AnimatedBuilder(
+                  animation: _aboutUsRibbonController,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(
+                        -ribbonWidth * _aboutUsRibbonController.value,
+                        0,
+                      ),
+                      child: child,
+                    );
+                  },
+                  child: OverflowBox(
+                    alignment: Alignment.centerLeft,
+                    maxWidth: double.infinity,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < copies; i++) ..._aboutUsCards(t),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _infoCard(String title, String path, {Alignment alignment = Alignment.center}) {
+  List<Widget> _aboutUsCards(AppText t) {
+    return [
+      _infoCard(
+        t.freshFlowers,
+        'assets/us_1.png',
+        alignment: const Alignment(0, -0.3),
+      ),
+      _infoCard(
+        t.fastDelivery,
+        'assets/us_2.png',
+        alignment: const Alignment(0, -0.4),
+      ),
+      _infoCard(
+        t.qualityGuarantee,
+        'assets/us_3.png',
+        alignment: const Alignment(0, -0.2),
+      ),
+    ];
+  }
+
+  Widget _infoCard(
+    String title,
+    String path, {
+    Alignment alignment = Alignment.center,
+  }) {
     return Container(
       width: 220,
       margin: const EdgeInsets.only(left: 20),
@@ -477,42 +792,74 @@ class _BasBetScreenState extends State<BasBetScreen> {
           image: AssetImage(path),
           fit: BoxFit.cover,
           alignment: alignment,
-          colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+          colorFilter: ColorFilter.mode(
+            Colors.black.withOpacity(0.4),
+            BlendMode.darken,
+          ),
         ),
       ),
       child: Center(
-        child: Text(title,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildAICard() {
+    final t = context.t;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
         onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatScreen()),
+          );
         },
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFFEE6F97), Color(0xFFE60064)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFEE6F97), Color(0xFFE60064)],
+            ),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: darkPink.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                color: darkPink.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
               const Icon(Icons.auto_awesome, color: Colors.white, size: 30),
               const SizedBox(width: 15),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ЖИ кеңесшіден сұрау',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text('Сізге таңдауға көмектесемін',
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(
+                      t.askAiAdvisor,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      t.aiAdvisorSubtitle,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -524,4 +871,3 @@ class _BasBetScreenState extends State<BasBetScreen> {
     );
   }
 }
-

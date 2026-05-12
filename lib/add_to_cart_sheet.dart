@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'app_language.dart';
 import 'product.dart';
 import 'services/api_service.dart';
+import 'widgets/product_image.dart';
 
 Future<void> showAddToCartSheet(BuildContext context, Product product) async {
   final darkPink = const Color(0xFFE60064);
@@ -16,6 +18,7 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final t = context.t;
           final total = product.price * quantity;
           return Padding(
             padding: EdgeInsets.only(
@@ -29,10 +32,13 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Себетке қосу',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        t.addToCart,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -45,15 +51,19 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => _showImagePreview(context, product, darkPink: darkPink),
+                      onTap: () => _showImagePreview(
+                        context,
+                        product,
+                        darkPink: darkPink,
+                      ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          product.imagePath,
+                        child: ProductImage(
+                          product: product,
                           width: 70,
                           height: 70,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
+                          errorWidget: Container(
                             width: 70,
                             height: 70,
                             color: Colors.pink[50],
@@ -67,9 +77,15 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text(
+                            t.productName(product),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           const SizedBox(height: 6),
-                          Text(product.formattedPrice, style: TextStyle(color: darkPink)),
+                          Text(
+                            t.priceValue(product.price),
+                            style: TextStyle(color: darkPink),
+                          ),
                         ],
                       ),
                     ),
@@ -79,11 +95,16 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Саны', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      t.quantity,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     Row(
                       children: [
                         IconButton(
-                          onPressed: quantity > 1 ? () => setState(() => quantity -= 1) : null,
+                          onPressed: quantity > 1
+                              ? () => setState(() => quantity -= 1)
+                              : null,
                           icon: const Icon(Icons.remove_circle_outline),
                         ),
                         Text('$quantity', style: const TextStyle(fontSize: 16)),
@@ -99,10 +120,16 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Жалпы баға', style: TextStyle(color: Colors.black54)),
                     Text(
-                      Product.formatPrice(total),
-                      style: TextStyle(fontWeight: FontWeight.bold, color: darkPink),
+                      t.totalPrice,
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    Text(
+                      t.priceValue(total),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: darkPink,
+                      ),
                     ),
                   ],
                 ),
@@ -113,26 +140,34 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: darkPink,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () async {
                       try {
-                        await ApiService.addToCart(product.id, quantity: quantity);
+                        await ApiService.addToCart(
+                          product.id,
+                          quantity: quantity,
+                        );
                         if (context.mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Себетке қосылды')),
+                            SnackBar(content: Text(t.addedToCart)),
                           );
                         }
                       } catch (_) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Себетке қосу сәтсіз')),
+                            SnackBar(content: Text(t.addToCartFailed)),
                           );
                         }
                       }
                     },
-                    child: const Text('Растау', style: TextStyle(color: Colors.white)),
+                    child: Text(
+                      t.confirm,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ],
@@ -162,10 +197,10 @@ Future<void> _showImagePreview(
                 child: InteractiveViewer(
                   minScale: 1,
                   maxScale: 3,
-                  child: Image.asset(
-                    product.imagePath,
+                  child: ProductImage(
+                    product: product,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Icon(
+                    errorWidget: Icon(
                       Icons.local_florist,
                       size: 140,
                       color: darkPink,

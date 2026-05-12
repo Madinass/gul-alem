@@ -6,6 +6,7 @@ class Product {
   final int price;
   final Color color;
   final String imagePath;
+  final String imageUrl;
   final String flowerType;
   final String? categoryId;
   final bool inStock;
@@ -19,6 +20,7 @@ class Product {
     required this.name,
     required this.price,
     required this.imagePath,
+    this.imageUrl = '',
     required this.flowerType,
     this.categoryId,
     this.inStock = true,
@@ -33,8 +35,11 @@ class Product {
     return Product(
       id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
-      price: (json['price'] ?? 0) is int ? json['price'] : (json['price'] as num).toInt(),
-      imagePath: json['imagePath'] ?? '',
+      price: (json['price'] ?? 0) is int
+          ? json['price']
+          : (json['price'] as num).toInt(),
+      imagePath: (json['imagePath'] ?? json['imageUrl'] ?? '').toString(),
+      imageUrl: (json['imageUrl'] ?? '').toString(),
       flowerType: json['flowerType'] ?? '',
       categoryId: json['categoryId']?.toString(),
       inStock: json['inStock'] ?? true,
@@ -46,6 +51,8 @@ class Product {
   }
 
   String get formattedPrice => formatPrice(price);
+
+  String get displayImage => imageUrl.isNotEmpty ? imageUrl : imagePath;
 
   static String formatPrice(int value) {
     final digits = value.toString();
@@ -59,6 +66,7 @@ class Product {
     }
     return '${buffer.toString()} тг';
   }
+
   static List<String> _readStringList(dynamic value) {
     if (value is List) {
       return value.map((item) => item.toString()).toList();
@@ -66,4 +74,3 @@ class Product {
     return const [];
   }
 }
-

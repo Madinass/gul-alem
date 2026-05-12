@@ -46,9 +46,18 @@ class _MainWrapperState extends State<MainWrapper> {
         showUnselectedLabels: false,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_rounded), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_rounded), label: ''),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_rounded),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_rounded),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart_rounded),
+            label: '',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: ''),
         ],
       ),

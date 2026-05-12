@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../cart_item.dart';
@@ -6,17 +7,22 @@ import '../product.dart';
 import '../category.dart';
 import '../notification_item.dart';
 import '../order_model.dart';
+import 'backend_config.dart' as backend_config;
 
 class ApiService {
-  // for android: http://10.0.2.2:3000
-  static const String baseUrl = 'http://127.0.0.1:3000';
+  static final String baseUrl = backend_config.baseUrl;
 
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
   }
 
-  static Future<void> storeSession({required String token, required String role, required String email, required String name}) async {
+  static Future<void> storeSession({
+    required String token,
+    required String role,
+    required String email,
+    required String name,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
     await prefs.setString('auth_role', role);
@@ -32,7 +38,10 @@ class ApiService {
     await prefs.remove('auth_name');
   }
 
-  static Future<Map<String, dynamic>> login(String login, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String login,
+    String password,
+  ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
@@ -124,18 +133,47 @@ class ApiService {
     String? occasion,
     String? recipient,
   }) async {
-    final uri = Uri.parse('$baseUrl/products').replace(queryParameters: {
-      if (categoryId != null) 'categoryId': categoryId,
-      if (popularOnly) 'popular': 'true',
-      if (occasion != null) 'occasion': occasion,
-      if (recipient != null) 'recipient': recipient,
-    });
+    final uri = Uri.parse('$baseUrl/products').replace(
+      queryParameters: {
+        if (categoryId != null) 'categoryId': categoryId,
+        if (popularOnly) 'popular': 'true',
+        if (occasion != null) 'occasion': occasion,
+        if (recipient != null) 'recipient': recipient,
+      },
+    );
     final response = await http.get(uri);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => Product.fromJson(item)).toList();
     }
     throw Exception('Өнімдерді жүктеу сәтсіз');
+  }
+
+  static Future<List<Product>> searchProductsByPhoto(
+    Uint8List imageBytes,
+  ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/vision/search'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'imageBase64': base64Encode(imageBytes)}),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      final products = data is List ? data : data['products'];
+      if (products is List) {
+        return products.map((item) => Product.fromJson(item)).toList();
+      }
+      return [];
+    }
+    String? errorMessage;
+    try {
+      final data = jsonDecode(response.body);
+      errorMessage = data['message']?.toString();
+    } catch (_) {}
+    if (errorMessage != null && errorMessage.isNotEmpty) {
+      throw Exception(errorMessage);
+    }
+    throw Exception('Photo search failed');
   }
 
   static Future<List<dynamic>> fetchOrders() async {
@@ -154,7 +192,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/orders/$orderId'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'status': status}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -178,7 +219,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/admins'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'email': email}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -201,11 +245,15 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/products'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({
         'name': product.name,
         'price': product.price,
         'imagePath': product.imagePath,
+        'imageUrl': product.imageUrl,
         'flowerType': product.flowerType,
         'categoryId': product.categoryId,
         'inStock': product.inStock,
@@ -223,11 +271,15 @@ class ApiService {
     final token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/products/${product.id}'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({
         'name': product.name,
         'price': product.price,
         'imagePath': product.imagePath,
+        'imageUrl': product.imageUrl,
         'flowerType': product.flowerType,
         'categoryId': product.categoryId,
         'inStock': product.inStock,
@@ -241,11 +293,18 @@ class ApiService {
     throw Exception('Өнімді жаңарту сәтсіз');
   }
 
-  static Future<void> updateStock(String productId, bool inStock, int stockCount) async {
+  static Future<void> updateStock(
+    String productId,
+    bool inStock,
+    int stockCount,
+  ) async {
     final token = await _getToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/products/$productId/stock'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'inStock': inStock, 'stockCount': stockCount}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -257,7 +316,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/products/$productId'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'popular': popular}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -292,7 +354,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chats'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'title': title}),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -301,7 +366,9 @@ class ApiService {
     throw Exception('Жаңа чат құру сәтсіз');
   }
 
-  static Future<Map<String, dynamic>> fetchChatMessages(String sessionId) async {
+  static Future<Map<String, dynamic>> fetchChatMessages(
+    String sessionId,
+  ) async {
     final token = await _getToken();
     final response = await http.get(
       Uri.parse('$baseUrl/ai/chats/$sessionId'),
@@ -313,11 +380,17 @@ class ApiService {
     throw Exception('Чат хабарламаларын жүктеу сәтсіз');
   }
 
-  static Future<Map<String, dynamic>> sendChatMessage(String message, {String? sessionId}) async {
+  static Future<Map<String, dynamic>> sendChatMessage(
+    String message, {
+    String? sessionId,
+  }) async {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chat'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'message': message, 'sessionId': sessionId}),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -360,7 +433,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/payment-methods'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({
         'cardholderName': cardholderName,
         'cardNumber': cardNumber,
@@ -385,7 +461,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/payment-methods/$id'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({
         'cardholderName': cardholderName,
         'cardNumber': cardNumber,
@@ -427,7 +506,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/favorites'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'productId': productId}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -463,7 +545,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/cart'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'productId': productId, 'quantity': quantity}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -471,11 +556,17 @@ class ApiService {
     }
   }
 
-  static Future<void> updateCartItem(String productId, {required int quantity}) async {
+  static Future<void> updateCartItem(
+    String productId, {
+    required int quantity,
+  }) async {
     final token = await _getToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/cart/$productId'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'quantity': quantity}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -508,17 +599,23 @@ class ApiService {
   static Future<OrderModel> createOrder(List<CartItem> items) async {
     final token = await _getToken();
     final payload = items
-        .map((item) => {
-              'productId': item.product.id,
-              'name': item.product.name,
-              'imagePath': item.product.imagePath,
-              'price': item.product.price,
-              'quantity': item.quantity,
-            })
+        .map(
+          (item) => {
+            'productId': item.product.id,
+            'name': item.product.name,
+            'imagePath': item.product.imagePath,
+            'imageUrl': item.product.imageUrl,
+            'price': item.product.price,
+            'quantity': item.quantity,
+          },
+        )
         .toList();
     final response = await http.post(
       Uri.parse('$baseUrl/orders'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'items': payload}),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -561,7 +658,10 @@ class ApiService {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/notifications'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'title': title, 'message': message, 'type': type}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -579,5 +679,4 @@ class ApiService {
       throw Exception('Хабарламаны оқылғанға белгілеу сәтсіз');
     }
   }
-
 }

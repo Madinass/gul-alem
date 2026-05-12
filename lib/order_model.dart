@@ -15,8 +15,12 @@ class OrderItem {
     return OrderItem(
       name: json['name'] ?? '',
       imagePath: json['imagePath'] ?? '',
-      price: (json['price'] ?? 0) is int ? json['price'] : (json['price'] as num).toInt(),
-      quantity: (json['quantity'] ?? 1) is int ? json['quantity'] : (json['quantity'] as num).toInt(),
+      price: (json['price'] ?? 0) is int
+          ? json['price']
+          : (json['price'] as num).toInt(),
+      quantity: (json['quantity'] ?? 1) is int
+          ? json['quantity']
+          : (json['quantity'] as num).toInt(),
     );
   }
 }
@@ -41,7 +45,9 @@ class OrderModel {
     return OrderModel(
       id: json['_id']?.toString() ?? '',
       items: rawItems.map((item) => OrderItem.fromJson(item ?? {})).toList(),
-      total: (json['total'] ?? 0) is int ? json['total'] : (json['total'] as num).toInt(),
+      total: (json['total'] ?? 0) is int
+          ? json['total']
+          : (json['total'] as num).toInt(),
       status: json['status'] ?? 'pending',
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );

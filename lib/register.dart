@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Форматтау үшін
 
-import 'bas_bet_screen.dart'; // Сақтау
+import 'app_language.dart';
 import 'login_screen.dart'; // Сақтау
 // Мына импортты қосыңыз немесе түзетіңіз:
-import 'main_wrapper.dart'; 
+import 'main_wrapper.dart';
 import 'services/api_service.dart';
 
 class RegisterApp extends StatelessWidget {
@@ -12,13 +12,10 @@ class RegisterApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: RegisterScreen(),
-    );
+    return const RegisterScreen();
   }
 }
- 
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -31,7 +28,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController numberController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -47,31 +45,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegistration() async {
+    final t = context.t;
     String password = passwordController.text;
     String confirmPassword = confirmPasswordController.text;
 
     // Құпия сөздің ұзындығы және шарттар
     if (password.length < 8 || password.length > 64) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөз 8-64 таңба аралығында болуы керек."), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(t.passwordLengthRule),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
     if (!RegExp(r'\d').hasMatch(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөзде кемінде бір сан болуы керек."), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(t.passwordNumberRule),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
     if (!RegExp(r'[^\w\s]').hasMatch(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөзде кемінде бір арнайы таңба болуы керек."), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(t.passwordSpecialRule),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Құпия сөздер сәйкес келмейді!"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(t.passwordsDoNotMatch),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -92,7 +103,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Тіркелу сәтті өтті!"), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(t.registrationSuccess),
+          backgroundColor: Colors.green,
+        ),
       );
 
       Navigator.pushReplacement(
@@ -101,7 +115,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Серверге қосылу қатесі: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(t.serverConnectionErrorWith(e)),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -134,7 +151,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
-                  isVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  isVisible
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                   color: primaryColor,
                 ),
                 onPressed: () => toggleVisibility(!isVisible),
@@ -154,13 +173,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18,
+          horizontal: 15,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     const softPink = Color.fromARGB(255, 255, 245, 247);
     const darkPink = Color.fromARGB(255, 230, 0, 100);
     final Size screenSize = MediaQuery.of(context).size;
@@ -186,7 +209,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 80, bottom: 120, left: 25, right: 25),
+              padding: const EdgeInsets.only(
+                top: 80,
+                bottom: 120,
+                left: 25,
+                right: 25,
+              ),
               child: Card(
                 color: Colors.white,
                 shape: RoundedRectangleBorder(
@@ -212,16 +240,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: const Center(
-                              child: Icon(Icons.person, size: 50, color: Colors.white),
+                              child: Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white,
+                              ),
                             ),
                           );
                         },
                       ),
                       const SizedBox(height: 30),
-                      const Text(
-                        "Тіркеліп, жақыныңызды қуантыңыз!",
+                      Text(
+                        t.registerSubtitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
@@ -230,7 +262,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 40),
                       _buildTextField(
                         nameController,
-                        "Аты-жөніңіз",
+                        t.fullName,
                         Icons.person_outline,
                         false,
                         false,
@@ -239,7 +271,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
                       _buildTextField(
                         numberController,
-                        "Телефон нөмірі",
+                        t.phoneNumber,
                         Icons.phone_android,
                         false,
                         false,
@@ -251,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
                       _buildTextField(
                         emailController,
-                        "Эл. пошта",
+                        t.email,
                         Icons.email_outlined,
                         false,
                         false,
@@ -261,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
                       _buildTextField(
                         passwordController,
-                        "Құпия сөз",
+                        t.password,
                         Icons.lock_outline,
                         true,
                         _isPasswordVisible,
@@ -273,7 +305,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
                       _buildTextField(
                         confirmPasswordController,
-                        "Құпия сөзді қайталау",
+                        t.confirmPassword,
                         Icons.lock_reset,
                         true,
                         _isConfirmPasswordVisible,
@@ -286,20 +318,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            "Тіркелгенсіз бе?",
-                            style: TextStyle(color: Colors.black54),
+                          Text(
+                            t.alreadyRegistered,
+                            style: const TextStyle(color: Colors.black54),
                           ),
                           TextButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
+                                ),
                               );
                             },
                             child: Text(
-                              "Кіру",
-                              style: TextStyle(color: darkPink, fontWeight: FontWeight.bold),
+                              t.login,
+                              style: TextStyle(
+                                color: darkPink,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -328,9 +365,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     elevation: 10,
                   ),
                   onPressed: _handleRegistration,
-                  child: const Text(
-                    "Тіркелуден өту",
-                    style: TextStyle(
+                  child: Text(
+                    t.registerAction,
+                    style: const TextStyle(
                       fontSize: 18,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -346,16 +383,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-
-
-
 // import 'package:flutter/material.dart';
 // import 'shop_screen.dart';
 // import 'login_screen.dart';
 
 // class RegisterApp extends StatelessWidget{
 //     const RegisterApp({super.key});
-
 
 //     @override
 //     Widget build(BuildContext context) {
@@ -368,7 +401,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 // class RegisterScreen extends StatefulWidget{
 //     const RegisterScreen({super.key});
-//     @override 
+//     @override
 //     State<RegisterScreen> createState() => _RegisterScreenState();
 // }
 // class _RegisterScreenState extends State<RegisterScreen>{
@@ -387,14 +420,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                         colors:[const Color.fromARGB(255, 247, 122, 228),const Color.fromARGB(255, 137, 240, 114)],
 //                         begin: Alignment.topLeft,
 //                         end: Alignment.bottomRight,
-//                     ), 
-//                 ), 
+//                     ),
+//                 ),
 //                 child: Center(
 //                     child: SingleChildScrollView(
 //                         child:Card(
 //                             shape: RoundedRectangleBorder(
 //                                 borderRadius: BorderRadius.all(Radius.circular(20)),
-//                             ), 
+//                             ),
 //                             elevation: 8,
 //                             child: Padding(
 //                                 padding: const EdgeInsets.all(24),
@@ -408,7 +441,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                             style: TextStyle(
 //                                                 fontSize: 22,
 //                                                 fontWeight: FontWeight.bold,
-//                                             ), 
+//                                             ),
 //                                         ),
 //                                         const SizedBox(height: 20),
 //                                         TextField(
@@ -417,8 +450,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                                 labelText: "Name",
 //                                                 border: OutlineInputBorder(
 //                                                     borderRadius: BorderRadius.circular(15),
-//                                                 ), 
-//                                             ), 
+//                                                 ),
+//                                             ),
 //                                          ),
 //                                         const SizedBox(height: 20),
 //                                         TextField(
@@ -427,9 +460,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                                 labelText: "Phone number",
 //                                                 border: OutlineInputBorder(
 //                                                     borderRadius: BorderRadius.circular(15),
-//                                                 ), 
-//                                             ), 
-//                                          ),                                                                                 
+//                                                 ),
+//                                             ),
+//                                          ),
 //                                         const SizedBox(height: 20),
 //                                         TextField(
 //                                             controller: emailController,
@@ -438,8 +471,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                                 labelText: "Email",
 //                                                 border: OutlineInputBorder(
 //                                                     borderRadius: BorderRadius.circular(15),
-//                                                 ), 
-//                                             ), 
+//                                                 ),
+//                                             ),
 //                                          ),
 //                                         const SizedBox(height: 20),
 //                                          TextField(
@@ -450,16 +483,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                                 labelText: "Password",
 //                                                 border: OutlineInputBorder(
 //                                                     borderRadius: BorderRadius.circular(15),
-//                                                 ), 
-//                                             ), 
-//                                          ),  
+//                                                 ),
+//                                             ),
+//                                          ),
 
-                                         
 //                                          const SizedBox(height: 30,),
 //                                          SizedBox(
 //                                             width: double.infinity,
 //                                             child: ElevatedButton(
-                                               
+
 //                                                 style: ElevatedButton.styleFrom(
 //                                                     padding: const EdgeInsets.symmetric(vertical: 15),
 //                                                     shape: RoundedRectangleBorder(
@@ -468,7 +500,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                                 ),
 //                                                 onPressed: (){
 //                                                     String name = nameController.text;
-//                                                     String number = numberController.text; 
+//                                                     String number = numberController.text;
 //                                                     String email = emailController.text;
 //                                                     String password = passwordController.text;
 //                                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -477,13 +509,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                                     Navigator.pushReplacement(
 //                                                       context,
 //                                                       MaterialPageRoute(
-//                                                         builder: (context) => const ShopScreen(), 
+//                                                         builder: (context) => const ShopScreen(),
 //                                                         ),
 //                                                         );
 //                                                 },
 //                                                 child: const Text("Тіркелуден өту",style: TextStyle(fontSize: 18),),
-//                                             ), 
-//                                          ), 
+//                                             ),
+//                                          ),
 //                                                 const SizedBox(height: 10),
 //                                                 Row(
 //                                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -505,12 +537,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 //                                              ),
 
 //                                     ],
-//                                 ), 
-//                             ), 
-//                         ), 
-//                     ), 
-//                 ), 
-//             ), 
-//         );  
+//                                 ),
+//                             ),
+//                         ),
+//                     ),
+//                 ),
+//             ),
+//         );
 //     }
 // }
