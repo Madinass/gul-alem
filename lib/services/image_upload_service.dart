@@ -7,11 +7,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'backend_config.dart';
 
 class ImageUploadService {
-  static Future<String> uploadProductImage(File imageFile) async {
+  static Future<String> uploadImage(
+    File imageFile, {
+    String folder = 'products',
+  }) async {
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$baseUrl/upload-image'),
     );
+    request.fields['folder'] = folder;
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -36,6 +40,14 @@ class ImageUploadService {
       throw Exception('Image upload failed: imageUrl missing');
     }
     return imageUrl;
+  }
+
+  static Future<String> uploadProductImage(File imageFile) {
+    return uploadImage(imageFile, folder: 'products');
+  }
+
+  static Future<String> uploadCustomBouquetImage(File imageFile) {
+    return uploadImage(imageFile, folder: 'custom-bouquet');
   }
 }
 

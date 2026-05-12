@@ -20,6 +20,17 @@ extension AppLocaleData on AppLocale {
 
   String get shortLabel => code.toUpperCase();
 
+  Locale get flutterLocale {
+    switch (this) {
+      case AppLocale.kz:
+        return const Locale('kk');
+      case AppLocale.ru:
+        return const Locale('ru');
+      case AppLocale.en:
+        return const Locale('en');
+    }
+  }
+
   static AppLocale fromCode(String? code) {
     switch (code) {
       case 'ru':

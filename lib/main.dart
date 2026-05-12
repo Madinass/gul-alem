@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_language.dart';
 import 'home_screen.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLanguageScope.watch(context).locale;
     final baseTheme = ThemeData(
       fontFamily: 'Rubik',
       fontFamilyFallback: const ['NotoSans'],
@@ -34,6 +36,9 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      locale: locale.flutterLocale,
+      supportedLocales: AppLocale.values.map((locale) => locale.flutterLocale),
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: baseTheme.copyWith(
         textTheme: textTheme,
         primaryTextTheme: _bolderTextTheme(baseTheme.primaryTextTheme),

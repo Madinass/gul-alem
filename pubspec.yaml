@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   http: ^1.1.0
   image_picker: ^1.1.2
 
@@ -98,6 +100,7 @@ flutter:
     - assets/cat_8.png
     - assets/cat_9.png
     - assets/cat_10.png
+    - assets/custom_bouquet/
     - assets/us_1.png
     - assets/us_2.png 
     - assets/us_3.png

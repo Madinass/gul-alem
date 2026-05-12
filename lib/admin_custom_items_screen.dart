@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'app_language.dart';
 import 'custom_bouquet_item.dart';
 import 'services/api_service.dart';
+import 'services/image_upload_service.dart';
 
 class AdminCustomItemsScreen extends StatefulWidget {
   const AdminCustomItemsScreen({super.key});
@@ -14,6 +18,7 @@ class AdminCustomItemsScreen extends StatefulWidget {
 class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
   final Color darkPink = const Color(0xFFE60064);
   final List<String> _groups = const ['flowers', 'wrapping', 'extras'];
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool _loading = true;
   List<CustomBouquetItem> _items = [];
@@ -44,6 +49,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
     final priceController = TextEditingController(
       text: item?.price.toString() ?? '',
     );
+    final imageController = TextEditingController(text: item?.imagePath ?? '');
     final stockController = TextEditingController(
       text: item?.stockCount.toString() ?? '0',
     );
@@ -52,6 +58,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
     );
     var group = item?.group ?? _groups.first;
     var inStock = item?.inStock ?? true;
+    File? selectedImageFile;
     var saving = false;
     String? errorMessage;
 
@@ -61,12 +68,30 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
+            Future<void> pickImage() async {
+              try {
+                final image = await _imagePicker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 90,
+                );
+                if (image == null) return;
+                setDialogState(() {
+                  selectedImageFile = File(image.path);
+                  errorMessage = null;
+                });
+              } catch (error) {
+                setDialogState(() => errorMessage = t.errorWith(error));
+              }
+            }
+
             Future<void> save() async {
               if (saving) return;
               final name = nameController.text.trim();
               final price = int.tryParse(priceController.text.trim());
               final stock = int.tryParse(stockController.text.trim());
               final order = int.tryParse(orderController.text.trim()) ?? 0;
+              var imagePath = imageController.text.trim();
+              var imageUrl = item?.imageUrl ?? '';
               if (name.isEmpty || price == null || stock == null) {
                 setDialogState(() => errorMessage = t.fillAllFields);
                 return;
@@ -76,6 +101,19 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                 errorMessage = null;
               });
               try {
+                if (selectedImageFile != null) {
+                  imageUrl = await ImageUploadService.uploadCustomBouquetImage(
+                    selectedImageFile!,
+                  );
+                  imagePath = imageUrl;
+                  imageController.text = imageUrl;
+                } else if (imagePath.startsWith('http://') ||
+                    imagePath.startsWith('https://')) {
+                  imageUrl = imagePath;
+                } else if (imagePath != item?.imagePath) {
+                  imageUrl = '';
+                }
+
                 final updated = CustomBouquetItem(
                   id: item?.id ?? '',
                   name: name,
@@ -84,6 +122,8 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                   stockCount: stock,
                   inStock: inStock,
                   order: order,
+                  imagePath: imagePath,
+                  imageUrl: imageUrl,
                 );
                 if (item == null) {
                   await ApiService.createCustomBouquetItem(updated);
@@ -107,6 +147,16 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    _editorImagePreview(
+                      file: selectedImageFile,
+                      source: item?.displayImage ?? '',
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: saving ? null : pickImage,
+                      icon: const Icon(Icons.image_outlined),
+                      label: const Text('Choose image'),
+                    ),
                     TextField(
                       controller: nameController,
                       enabled: !saving,
@@ -117,6 +167,11 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                       enabled: !saving,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(labelText: t.price),
+                    ),
+                    TextField(
+                      controller: imageController,
+                      enabled: !saving,
+                      decoration: InputDecoration(labelText: t.imagePath),
                     ),
                     TextField(
                       controller: stockController,
@@ -195,6 +250,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
 
     nameController.dispose();
     priceController.dispose();
+    imageController.dispose();
     stockController.dispose();
     orderController.dispose();
 
@@ -249,9 +305,19 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFFFFE6EB),
-                      child: Icon(_iconForGroup(item.group), color: darkPink),
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE6EB),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: item.displayImage.isNotEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: _sourceImage(item.displayImage),
+                            )
+                          : Icon(_iconForGroup(item.group), color: darkPink),
                     ),
                     title: Text(
                       item.name,
@@ -289,6 +355,45 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                 );
               },
             ),
+    );
+  }
+
+  Widget _editorImagePreview({required File? file, required String source}) {
+    return Container(
+      height: 130,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFE6EB),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: file != null
+            ? Image.file(file, fit: BoxFit.contain)
+            : source.isNotEmpty
+            ? _sourceImage(source)
+            : Icon(Icons.image, color: darkPink, size: 42),
+      ),
+    );
+  }
+
+  Widget _sourceImage(String source) {
+    final uri = Uri.tryParse(source);
+    final isNetwork =
+        uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+    if (isNetwork) {
+      return Image.network(
+        source,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.image_not_supported, color: darkPink),
+      );
+    }
+    return Image.asset(
+      source,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) =>
+          Icon(Icons.image_not_supported, color: darkPink),
     );
   }
 

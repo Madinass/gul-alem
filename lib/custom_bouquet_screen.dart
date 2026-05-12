@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'app_language.dart';
@@ -156,6 +158,8 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHero(t),
+                    const SizedBox(height: 14),
+                    _buildBouquetPreview(),
                     const SizedBox(height: 18),
                     Text(
                       t.bouquetOptions,
@@ -239,6 +243,216 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     );
   }
 
+  Widget _buildBouquetPreview() {
+    final entries = _previewEntries();
+
+    return Container(
+      height: 252,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6F8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: lightPink),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final height = constraints.maxHeight;
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                Positioned(
+                  left: width * 0.24,
+                  right: width * 0.24,
+                  bottom: 18,
+                  child: Container(
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                ),
+                if (entries.isEmpty)
+                  Center(
+                    child: Icon(
+                      Icons.local_florist,
+                      color: darkPink.withValues(alpha: 0.34),
+                      size: 58,
+                    ),
+                  )
+                else
+                  for (final entry in entries)
+                    _buildPreviewSticker(entry, width, height),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<_PreviewEntry> _previewEntries() {
+    final byRole = <String, List<CustomBouquetItem>>{
+      'wrap': [],
+      'green': [],
+      'flower': [],
+      'balloon': [],
+      'side': [],
+      'front': [],
+    };
+
+    for (final group in const ['wrapping', 'extras', 'flowers']) {
+      for (final item in _itemsForGroup(group)) {
+        final quantity = _quantities[item.id] ?? 0;
+        for (var index = 0; index < quantity; index += 1) {
+          final total = byRole.values.fold<int>(
+            0,
+            (sum, roleItems) => sum + roleItems.length,
+          );
+          if (total >= 40) break;
+          byRole[_previewRole(item)]?.add(item);
+        }
+      }
+    }
+
+    final entries = <_PreviewEntry>[];
+    for (final role in const [
+      'wrap',
+      'green',
+      'flower',
+      'balloon',
+      'side',
+      'front',
+    ]) {
+      final items = byRole[role] ?? const <CustomBouquetItem>[];
+      for (var index = 0; index < items.length; index += 1) {
+        entries.add(
+          _PreviewEntry(
+            item: items[index],
+            role: role,
+            roleIndex: index,
+            roleCount: items.length,
+          ),
+        );
+      }
+    }
+    return entries;
+  }
+
+  String _previewRole(CustomBouquetItem item) {
+    final image = item.displayImage.toLowerCase().replaceAll('_', '-');
+    if (image.contains('kraft-wrap')) return 'wrap';
+    if (image.contains('green-leaf')) return 'green';
+    if (image.contains('satin-ribbon')) return 'front';
+    if (image.contains('balloon')) return 'balloon';
+    if (image.contains('card') || image.contains('premium-box')) return 'side';
+    if (item.group == 'flowers') return 'flower';
+    if (item.group == 'wrapping') return 'wrap';
+    return 'side';
+  }
+
+  Widget _buildPreviewSticker(
+    _PreviewEntry entry,
+    double width,
+    double height,
+  ) {
+    final placement = _previewPlacement(entry, width, height);
+    return Positioned(
+      left: placement.left,
+      top: placement.top,
+      width: placement.width,
+      child: Transform.rotate(
+        angle: placement.angle,
+        child: _sourceImage(
+          entry.item.displayImage,
+          fallback: Icon(_iconForGroup(entry.item.group), color: darkPink),
+        ),
+      ),
+    );
+  }
+
+  _PreviewPlacement _previewPlacement(
+    _PreviewEntry entry,
+    double width,
+    double height,
+  ) {
+    final index = entry.roleIndex;
+    final count = entry.roleCount;
+    final progress = count <= 1 ? 0.5 : index / (count - 1);
+
+    switch (entry.role) {
+      case 'wrap':
+        final stickerWidth = math.min(width * 0.34, 136.0);
+        final centerOffset = (index - ((count - 1) / 2)) * 18.0;
+        return _PreviewPlacement(
+          left: (width / 2) + centerOffset - (stickerWidth / 2),
+          top: height * 0.31 + (index.isEven ? 0 : 6),
+          width: stickerWidth,
+          angle: (index.isEven ? -0.06 : 0.07),
+        );
+      case 'green':
+        final stickerWidth = math.min(width * 0.22, 86.0);
+        final direction = index.isEven ? -1.0 : 1.0;
+        final tier = index ~/ 2;
+        return _PreviewPlacement(
+          left:
+              (width * 0.5) +
+              (direction * width * 0.15) +
+              (tier * direction * 7) -
+              (stickerWidth / 2),
+          top: height * 0.15 + (tier * 7),
+          width: stickerWidth,
+          angle: direction * 0.48,
+        );
+      case 'flower':
+        final spread = math.min(width * 0.40, 150.0);
+        final stickerWidth = count <= 4
+            ? math.min(width * 0.25, 98.0)
+            : math.max(54.0, math.min(86.0, width / (count + 1.5)));
+        return _PreviewPlacement(
+          left:
+              (width * 0.5) + ((progress - 0.5) * spread) - (stickerWidth / 2),
+          top: height * 0.27 - ((index % 3) * 5),
+          width: stickerWidth,
+          angle: -0.36 + (progress * 0.72),
+        );
+      case 'balloon':
+        final stickerWidth = math.min(width * 0.22, 84.0);
+        return _PreviewPlacement(
+          left: width * 0.08 + (index * 10),
+          top: height * 0.12 + ((index % 2) * 12),
+          width: stickerWidth,
+          angle: -0.16 + (index % 3) * 0.08,
+        );
+      case 'front':
+        final stickerWidth = math.min(width * 0.31, 122.0);
+        return _PreviewPlacement(
+          left:
+              (width / 2) -
+              (stickerWidth / 2) +
+              ((index - ((count - 1) / 2)) * 10),
+          top: height * 0.62 + ((index % 2) * 5),
+          width: stickerWidth,
+          angle: index.isEven ? -0.04 : 0.05,
+        );
+      default:
+        final stickerWidth = math.min(width * 0.24, 100.0);
+        final rightSide = index.isOdd;
+        final tier = index ~/ 2;
+        return _PreviewPlacement(
+          left: rightSide
+              ? width * 0.72 - (tier * 8)
+              : width * 0.08 + (tier * 8),
+          top: height * 0.22 + (tier * 12),
+          width: stickerWidth,
+          angle: rightSide ? 0.18 : -0.18,
+        );
+    }
+  }
+
   Widget _buildGroup(AppText t, String group) {
     final items = _itemsForGroup(group);
     if (items.isEmpty) return const SizedBox.shrink();
@@ -291,7 +505,18 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
               color: lightPink,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(_iconForGroup(item.group), color: darkPink),
+            child: item.displayImage.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _sourceImage(
+                      item.displayImage,
+                      fallback: Icon(
+                        _iconForGroup(item.group),
+                        color: darkPink,
+                      ),
+                    ),
+                  )
+                : Icon(_iconForGroup(item.group), color: darkPink),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -471,6 +696,38 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     );
   }
 
+  Widget _sourceImage(String source, {required Widget fallback}) {
+    if (source.isEmpty) return fallback;
+
+    final uri = Uri.tryParse(source);
+    final isNetwork =
+        uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+
+    if (isNetwork) {
+      return Image.network(
+        source,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => fallback,
+      );
+    }
+
+    return Image.asset(
+      source,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
+  }
+
   IconData _iconForGroup(String group) {
     switch (group) {
       case 'flowers':
@@ -481,4 +738,32 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
         return Icons.add_circle_outline;
     }
   }
+}
+
+class _PreviewEntry {
+  final CustomBouquetItem item;
+  final String role;
+  final int roleIndex;
+  final int roleCount;
+
+  const _PreviewEntry({
+    required this.item,
+    required this.role,
+    required this.roleIndex,
+    required this.roleCount,
+  });
+}
+
+class _PreviewPlacement {
+  final double left;
+  final double top;
+  final double width;
+  final double angle;
+
+  const _PreviewPlacement({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.angle,
+  });
 }

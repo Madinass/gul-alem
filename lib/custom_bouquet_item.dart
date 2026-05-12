@@ -6,6 +6,8 @@ class CustomBouquetItem {
   final int stockCount;
   final bool inStock;
   final int order;
+  final String imagePath;
+  final String imageUrl;
 
   const CustomBouquetItem({
     required this.id,
@@ -15,6 +17,8 @@ class CustomBouquetItem {
     required this.stockCount,
     required this.inStock,
     required this.order,
+    this.imagePath = '',
+    this.imageUrl = '',
   });
 
   factory CustomBouquetItem.fromJson(Map<String, dynamic> json) {
@@ -26,10 +30,14 @@ class CustomBouquetItem {
       stockCount: _readInt(json['stockCount']),
       inStock: json['inStock'] ?? true,
       order: _readInt(json['order']),
+      imagePath: (json['imagePath'] ?? json['imageUrl'] ?? '').toString(),
+      imageUrl: (json['imageUrl'] ?? '').toString(),
     );
   }
 
   bool get available => inStock && stockCount > 0;
+
+  String get displayImage => imageUrl.isNotEmpty ? imageUrl : imagePath;
 
   Map<String, dynamic> toJson() {
     return {
@@ -39,6 +47,8 @@ class CustomBouquetItem {
       'stockCount': stockCount,
       'inStock': inStock,
       'order': order,
+      'imagePath': imagePath,
+      'imageUrl': imageUrl,
     };
   }
 
