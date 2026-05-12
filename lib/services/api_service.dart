@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../cart_item.dart';
+import '../custom_bouquet_item.dart';
 import '../product.dart';
 import '../category.dart';
 import '../notification_item.dart';
@@ -149,6 +150,62 @@ class ApiService {
     throw Exception('Өнімдерді жүктеу сәтсіз');
   }
 
+  static Future<List<CustomBouquetItem>> fetchCustomBouquetItems() async {
+    final response = await http.get(Uri.parse('$baseUrl/custom-items'));
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => CustomBouquetItem.fromJson(item)).toList();
+    }
+    throw Exception('Жеке букет бөліктерін жүктеу сәтсіз');
+  }
+
+  static Future<CustomBouquetItem> createCustomBouquetItem(
+    CustomBouquetItem item,
+  ) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/custom-items'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(item.toJson()),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return CustomBouquetItem.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Жеке букет бөлігін құру сәтсіз');
+  }
+
+  static Future<CustomBouquetItem> updateCustomBouquetItem(
+    CustomBouquetItem item,
+  ) async {
+    final token = await _getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/custom-items/${item.id}'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(item.toJson()),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return CustomBouquetItem.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Жеке букет бөлігін жаңарту сәтсіз');
+  }
+
+  static Future<void> deleteCustomBouquetItem(String id) async {
+    final token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/custom-items/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Жеке букет бөлігін өшіру сәтсіз');
+    }
+  }
+
   static Future<List<Product>> searchProductsByPhoto(
     Uint8List imageBytes,
   ) async {
@@ -215,7 +272,7 @@ class ApiService {
     throw Exception('Әкімшілерді жүктеу сәтсіз');
   }
 
-  static Future<void> addAdmin(String email) async {
+  static Future<void> addAdmin(String email, {String role = 'admin'}) async {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/admins'),
@@ -223,7 +280,7 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'email': email}),
+      body: jsonEncode({'email': email, 'role': role}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Әкімші қосу сәтсіз');
@@ -622,6 +679,25 @@ class ApiService {
       return OrderModel.fromJson(jsonDecode(response.body));
     }
     throw Exception('Тапсырыс жасау сәтсіз');
+  }
+
+  static Future<OrderModel> createCustomBouquetOrder({
+    required List<Map<String, dynamic>> items,
+    required String description,
+  }) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/orders/custom'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'items': items, 'description': description}),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return OrderModel.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Жеке букет тапсырысын жасау сәтсіз');
   }
 
   static Future<List<OrderModel>> fetchMyOrders() async {

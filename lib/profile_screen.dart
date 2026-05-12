@@ -4,6 +4,7 @@ import 'app_language.dart';
 import 'admin_products_screen.dart';
 import 'admin_orders_screen.dart';
 import 'admin_emails_screen.dart';
+import 'admin_custom_items_screen.dart';
 import 'login_screen.dart';
 import 'order_model.dart';
 import 'services/api_service.dart';
@@ -470,13 +471,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t.orderMade,
+                    order.orderType == 'custom'
+                        ? t.customOrderLabel
+                        : t.orderMade,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   Text(t.dateWith(_formatDate(order.createdAt))),
                   const SizedBox(height: 6),
                   Text(t.quantityTotalWith(count, t.priceValue(order.total))),
+                  if (order.description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(t.descriptionWith(order.description)),
+                  ],
                   const SizedBox(height: 6),
                   Text(
                     t.statusWith(_orderStatusLabel(order.status)),
@@ -561,6 +568,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final t = context.t;
     final Color darkPink = const Color(0xFFE60064);
     final Color lightPink = const Color(0xFFFFE6EB);
+    final isStaff =
+        _role == 'worker' || _role == 'admin' || _role == 'super_admin';
+    final canManageProducts = _role == 'admin' || _role == 'super_admin';
 
     if (_loading) {
       return const Center(
@@ -636,7 +646,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
             _buildOrdersSection(darkPink, lightPink),
             const SizedBox(height: 20),
-            if (_role == 'admin' || _role == 'super_admin') ...[
+            if (isStaff) ...[
               Text(
                 t.adminSection,
                 style: const TextStyle(
@@ -645,13 +655,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 10),
+              if (canManageProducts) ...[
+                _buildActionButton(
+                  context,
+                  label: t.manageProducts,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdminProductsScreen(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               _buildActionButton(
                 context,
-                label: t.manageProducts,
+                label: t.manageCustomItems,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const AdminProductsScreen(),
+                    builder: (context) => const AdminCustomItemsScreen(),
                   ),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'add_to_cart_sheet.dart';
 import 'product.dart';
 import 'chat_screen.dart';
+import 'custom_bouquet_screen.dart';
 import 'services/api_service.dart';
 import 'notification_screen.dart';
 import 'app_language.dart';
@@ -308,6 +309,8 @@ class _BasBetScreenState extends State<BasBetScreen>
             ] else ...[
               _buildPopularHeader(),
               _buildPopularList(),
+              const SizedBox(height: 25),
+              _buildCustomBouquetCard(),
               const SizedBox(height: 25),
               _buildAboutUsWithImages(),
               const SizedBox(height: 25),
@@ -704,6 +707,80 @@ class _BasBetScreenState extends State<BasBetScreen>
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCustomBouquetCard() {
+    final t = context.t;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CustomBouquetScreen(),
+            ),
+          );
+        },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 116),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF6F8),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: lightPink),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: lightPink,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(Icons.local_florist, color: darkPink, size: 30),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      t.customBouquetCtaTitle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      t.customBouquetCtaSubtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, color: darkPink, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }

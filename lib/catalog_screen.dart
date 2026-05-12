@@ -3,6 +3,7 @@ import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
 import 'category_detail_screen.dart';
 import 'category.dart';
+import 'custom_bouquet_screen.dart';
 import 'filter_option_screen.dart';
 import 'filter_options.dart';
 import 'product.dart';
@@ -393,15 +394,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Widget _buildCategoryIcon(Category category) {
+    final isCustomBouquet = category.imagePath.toLowerCase().contains('cat_10');
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CategoryDetailScreen(
-              categoryId: category.id,
-              categoryName: context.t.categoryName(category),
-            ),
+            builder: (context) => isCustomBouquet
+                ? const CustomBouquetScreen()
+                : CategoryDetailScreen(
+                    categoryId: category.id,
+                    categoryName: context.t.categoryName(category),
+                  ),
           ),
         );
       },

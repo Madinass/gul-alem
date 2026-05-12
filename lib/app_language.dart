@@ -249,6 +249,65 @@ class AppText {
   );
   String get categories =>
       pick(kz: 'Категориялар', ru: 'Категории', en: 'Categories');
+  String get customBouquet =>
+      pick(kz: 'Өз букетің', ru: 'Свой букет', en: 'DIY bouquet');
+  String get customBouquetCtaTitle => pick(
+    kz: 'Өз букетіңді құрастыр',
+    ru: 'Соберите свой букет',
+    en: 'Create your own bouquet',
+  );
+  String get customBouquetCtaSubtitle => pick(
+    kz: 'Гүл, орама және қосымша таңдаңыз',
+    ru: 'Выберите цветы, упаковку и детали',
+    en: 'Choose flowers, wrapping, and extras',
+  );
+  String get customBouquetSubtitle => pick(
+    kz: 'Әр бөлікті таңдап, бағасын бірден көріңіз.',
+    ru: 'Выбирайте детали и сразу видите цену.',
+    en: 'Pick each item and see the price instantly.',
+  );
+  String get bouquetOptions =>
+      pick(kz: 'Бөліктер', ru: 'Детали', en: 'Options');
+  String get bouquetDescription =>
+      pick(kz: 'Сипаттама', ru: 'Описание', en: 'Description');
+  String get bouquetDescriptionHint => pick(
+    kz: 'Түстер, стиль немесе тілек жазыңыз',
+    ru: 'Укажите цвета, стиль или пожелания',
+    en: 'Add colors, style, or notes',
+  );
+  String get submitCustomBouquet =>
+      pick(kz: 'Тапсырыс жіберу', ru: 'Отправить заказ', en: 'Send order');
+  String get customBouquetCreated => pick(
+    kz: 'Жеке букет тапсырысы жіберілді',
+    ru: 'Заказ на свой букет отправлен',
+    en: 'Custom bouquet order sent',
+  );
+  String get customBouquetFailed => pick(
+    kz: 'Жеке букет тапсырысы жіберілмеді',
+    ru: 'Не удалось отправить заказ',
+    en: 'Could not send custom order',
+  );
+  String get chooseAtLeastOneCustomItem => pick(
+    kz: 'Кемінде бір бөлікті таңдаңыз',
+    ru: 'Выберите хотя бы одну деталь',
+    en: 'Choose at least one item',
+  );
+  String get selectedItems =>
+      pick(kz: 'Таңдалғандар', ru: 'Выбрано', en: 'Selected');
+  String availableCount(int count) =>
+      pick(kz: 'Қоймада: $count', ru: 'На складе: $count', en: 'Stock: $count');
+  String customGroupLabel(String group) {
+    switch (group) {
+      case 'flowers':
+        return pick(kz: 'Гүлдер', ru: 'Цветы', en: 'Flowers');
+      case 'wrapping':
+        return pick(kz: 'Орама', ru: 'Упаковка', en: 'Wrapping');
+      case 'extras':
+        return pick(kz: 'Қосымша', ru: 'Дополн.', en: 'Extras');
+      default:
+        return group;
+    }
+  }
 
   String get favorites =>
       pick(kz: 'Таңдаулылар', ru: 'Избранное', en: 'Favorites');
@@ -399,11 +458,13 @@ class AppText {
     ru: 'Управление заказами',
     en: 'Manage orders',
   );
-  String get adminEmails => pick(
-    kz: 'Әкімші эл. пошталары',
-    ru: 'Email администраторов',
-    en: 'Admin emails',
+  String get manageCustomItems => pick(
+    kz: 'Жеке букет бөліктері',
+    ru: 'Детали своего букета',
+    en: 'Custom bouquet items',
   );
+  String get adminEmails =>
+      pick(kz: 'Қызметкерлер', ru: 'Сотрудники', en: 'Staff access');
   String get orderHistory =>
       pick(kz: 'Тапсырыс тарихы', ru: 'История заказов', en: 'Order history');
   String get ordersEmpty =>
@@ -415,10 +476,11 @@ class AppText {
   );
 
   String get adminAdd =>
-      pick(kz: 'Әкімші қосу', ru: 'Добавить администратора', en: 'Add admin');
-  String get admins =>
-      pick(kz: 'Әкімшілер', ru: 'Администраторы', en: 'Admins');
+      pick(kz: 'Қызметкер қосу', ru: 'Добавить сотрудника', en: 'Add staff');
+  String get admins => pick(kz: 'Қызметкерлер', ru: 'Сотрудники', en: 'Staff');
   String get email => pick(kz: 'Эл. пошта', ru: 'Эл. почта', en: 'Email');
+  String get roleAdmin => pick(kz: 'Әкімші', ru: 'Администратор', en: 'Admin');
+  String get roleWorker => pick(kz: 'Қызметкер', ru: 'Сотрудник', en: 'Worker');
   String get products => pick(kz: 'Өнімдер', ru: 'Товары', en: 'Products');
   String get newProduct =>
       pick(kz: 'Жаңа өнім', ru: 'Новый товар', en: 'New product');
@@ -434,6 +496,16 @@ class AppText {
       pick(kz: 'Қойма саны', ru: 'Количество на складе', en: 'Stock count');
   String get category => pick(kz: 'Санат', ru: 'Категория', en: 'Category');
   String get popular => pick(kz: 'Танымал', ru: 'Популярный', en: 'Popular');
+  String get customItems => pick(
+    kz: 'Жеке букет бөліктері',
+    ru: 'Детали своего букета',
+    en: 'Custom items',
+  );
+  String get newCustomItem =>
+      pick(kz: 'Жаңа бөлік', ru: 'Новая деталь', en: 'New item');
+  String get editCustomItem =>
+      pick(kz: 'Бөлікті өңдеу', ru: 'Редактировать деталь', en: 'Edit item');
+  String get itemGroup => pick(kz: 'Тобы', ru: 'Группа', en: 'Group');
   String get orders => pick(kz: 'Тапсырыстар', ru: 'Заказы', en: 'Orders');
   String get pending => pick(kz: 'Күтуде', ru: 'Ожидает', en: 'Pending');
   String get processing =>
@@ -682,8 +754,17 @@ class AppText {
   String roleValue(String roleValue) => '$role: $roleValue';
   String orderNumber(Object id) =>
       pick(kz: 'Тапсырыс №$id', ru: 'Заказ №$id', en: 'Order #$id');
+  String get customOrderLabel =>
+      pick(kz: 'Жеке букет', ru: 'Свой букет', en: 'Custom bouquet');
+  String get standardOrderLabel =>
+      pick(kz: 'Дайын өнім', ru: 'Готовый товар', en: 'Standard order');
   String totalWith(String amount) =>
       pick(kz: 'Жалпы: $amount', ru: 'Итого: $amount', en: 'Total: $amount');
+  String descriptionWith(String value) => pick(
+    kz: 'Сипаттама: $value',
+    ru: 'Описание: $value',
+    en: 'Description: $value',
+  );
   String statusWith(String value) => '$status: $value';
   String dateWith(String value) => '$date: $value';
   String quantityTotalWith(int count, String total) => pick(
@@ -844,6 +925,7 @@ const Map<String, _LocaleValue> _categoryNames = {
     en: 'Edible gifts',
   ),
   'assets/cat_9.png': _LocaleValue(kz: 'Шарлар', ru: 'Шары', en: 'Balloons'),
+  'assets/cat_10.png': _LocaleValue(kz: 'Өзім', ru: 'Свой', en: 'DIY'),
 };
 
 const Map<String, _LocaleValue> _productNames = {

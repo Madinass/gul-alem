@@ -27,6 +27,8 @@ class OrderItem {
 
 class OrderModel {
   final String id;
+  final String orderType;
+  final String description;
   final List<OrderItem> items;
   final int total;
   final String status;
@@ -34,6 +36,8 @@ class OrderModel {
 
   OrderModel({
     required this.id,
+    required this.orderType,
+    required this.description,
     required this.items,
     required this.total,
     required this.status,
@@ -44,6 +48,8 @@ class OrderModel {
     final rawItems = (json['items'] as List<dynamic>? ?? []);
     return OrderModel(
       id: json['_id']?.toString() ?? '',
+      orderType: json['orderType']?.toString() ?? 'standard',
+      description: json['description']?.toString() ?? '',
       items: rawItems.map((item) => OrderItem.fromJson(item ?? {})).toList(),
       total: (json['total'] ?? 0) is int
           ? json['total']

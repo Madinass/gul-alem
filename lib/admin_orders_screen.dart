@@ -77,6 +77,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                 final total = (order['total'] ?? 0) is int
                     ? order['total']
                     : (order['total'] as num).toInt();
+                final orderType = order['orderType']?.toString() ?? 'standard';
+                final description = order['description']?.toString() ?? '';
+                final user = order['user'] is Map<String, dynamic>
+                    ? order['user'] as Map<String, dynamic>
+                    : null;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(
@@ -92,22 +97,46 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 6),
+                        Chip(
+                          label: Text(
+                            orderType == 'custom'
+                                ? t.customOrderLabel
+                                : t.standardOrderLabel,
+                          ),
+                          backgroundColor: const Color(0xFFFFE6EB),
+                        ),
+                        if (user != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            [
+                                  user['name']?.toString(),
+                                  user['email']?.toString(),
+                                ]
+                                .whereType<String>()
+                                .where((v) => v.isNotEmpty)
+                                .join(' • '),
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                        ],
+                        if (description.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(t.descriptionWith(description)),
+                        ],
+                        const SizedBox(height: 6),
                         Text(t.totalWith(t.priceValue(total))),
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
-                          children: items
-                              .map(
-                                (item) => Chip(
-                                  label: Text(
-                                    t.itemQuantity(
-                                      item['name'],
-                                      item['quantity'],
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                          children: items.map((item) {
+                            final price = (item['price'] ?? 0) is int
+                                ? item['price']
+                                : (item['price'] as num).toInt();
+                            return Chip(
+                              label: Text(
+                                '${t.itemQuantity(item['name'], item['quantity'])} • ${t.priceValue(price)}',
+                              ),
+                            );
+                          }).toList(),
                         ),
                         const SizedBox(height: 10),
                         Row(

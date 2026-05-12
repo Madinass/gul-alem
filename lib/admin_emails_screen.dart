@@ -37,32 +37,59 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
   Future<void> _addAdmin() async {
     final t = context.t;
     final controller = TextEditingController();
+    var role = 'admin';
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.adminAdd),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: t.email),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(t.cancel),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(t.adminAdd),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(labelText: t.email),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  decoration: InputDecoration(labelText: t.role),
+                  items: [
+                    DropdownMenuItem(value: 'admin', child: Text(t.roleAdmin)),
+                    DropdownMenuItem(
+                      value: 'worker',
+                      child: Text(t.roleWorker),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setDialogState(() => role = value ?? 'admin'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(t.cancel),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: darkPink),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(t.save),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: darkPink),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(t.save),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
-    if (result != true) return;
+    if (result != true) {
+      controller.dispose();
+      return;
+    }
 
     try {
-      await ApiService.addAdmin(controller.text.trim());
+      await ApiService.addAdmin(controller.text.trim(), role: role);
       await _loadAdmins();
     } catch (e) {
       if (!mounted) return;
@@ -72,6 +99,8 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
           backgroundColor: Colors.redAccent,
         ),
       );
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -116,6 +145,9 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
               itemBuilder: (context, index) {
                 final admin = admins[index];
                 final email = admin['email']?.toString() ?? '';
+                final role = admin['role'] == 'worker'
+                    ? t.roleWorker
+                    : t.roleAdmin;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(
@@ -127,6 +159,7 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
                       color: Color(0xFFE60064),
                     ),
                     title: Text(email),
+                    subtitle: Text(role),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
                       onPressed: () => _removeAdmin(email),
