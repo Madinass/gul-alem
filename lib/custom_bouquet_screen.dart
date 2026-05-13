@@ -14,12 +14,14 @@ class CustomBouquetScreen extends StatefulWidget {
 }
 
 class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
+  static const int _maxFlowerCount = 100;
   final Color darkPink = const Color(0xFFE60064);
   final Color lightPink = const Color(0xFFFFE6EB);
   final TextEditingController _descriptionController = TextEditingController();
 
   List<CustomBouquetItem> _items = [];
   final Map<String, int> _quantities = {};
+  final Set<String> _expandedGroups = {'flowers'};
   bool _loading = true;
   bool _submitting = false;
 
@@ -60,6 +62,14 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     return _quantities.values.fold<int>(0, (sum, quantity) => sum + quantity);
   }
 
+  int _selectedCountForGroup(String group) {
+    return _itemsForGroup(
+      group,
+    ).fold<int>(0, (sum, item) => sum + (_quantities[item.id] ?? 0));
+  }
+
+  int get _selectedFlowerCount => _selectedCountForGroup('flowers');
+
   List<CustomBouquetItem> _itemsForGroup(String group) {
     return _items.where((item) => item.group == group).toList()..sort((a, b) {
       final orderCompare = a.order.compareTo(b.order);
@@ -71,12 +81,44 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   void _changeQuantity(CustomBouquetItem item, int delta) {
     if (!item.available) return;
     final current = _quantities[item.id] ?? 0;
-    final next = (current + delta).clamp(0, item.stockCount).toInt();
+    final maxQuantity = _maxQuantityForItem(item);
+    final next = (current + delta).clamp(0, maxQuantity).toInt();
     setState(() {
       if (next == 0) {
         _quantities.remove(item.id);
       } else {
         _quantities[item.id] = next;
+      }
+    });
+  }
+
+  int _maxQuantityForItem(CustomBouquetItem item) {
+    if (item.group != 'flowers') return item.stockCount;
+    final current = _quantities[item.id] ?? 0;
+    final otherFlowers = _selectedFlowerCount - current;
+    final remainingForItem = _maxFlowerCount - otherFlowers;
+    return math.min(item.stockCount, math.max(0, remainingForItem));
+  }
+
+  void _toggleWrappingItem(CustomBouquetItem item) {
+    if (!item.available) return;
+    final selected = (_quantities[item.id] ?? 0) > 0;
+    setState(() {
+      for (final wrapping in _itemsForGroup('wrapping')) {
+        _quantities.remove(wrapping.id);
+      }
+      if (!selected) {
+        _quantities[item.id] = 1;
+      }
+    });
+  }
+
+  void _toggleGroup(String group) {
+    setState(() {
+      if (_expandedGroups.contains(group)) {
+        _expandedGroups.remove(group);
+      } else {
+        _expandedGroups.add(group);
       }
     });
   }
@@ -157,8 +199,6 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHero(t),
-                    const SizedBox(height: 14),
                     _buildBouquetPreview(),
                     const SizedBox(height: 18),
                     Text(
@@ -202,52 +242,11 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     );
   }
 
-  Widget _buildHero(AppText t) {
-    return Container(
-      height: 178,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        image: DecorationImage(
-          image: const AssetImage('assets/cat_10.png'),
-          fit: BoxFit.cover,
-          alignment: const Alignment(0.1, 0),
-          colorFilter: ColorFilter.mode(
-            Colors.black.withValues(alpha: 0.24),
-            BlendMode.darken,
-          ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              t.customBouquetCtaTitle,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              t.customBouquetSubtitle,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildBouquetPreview() {
     final entries = _previewEntries();
 
     return Container(
-      height: 252,
+      height: 390,
       width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFFFFF6F8),
@@ -297,10 +296,10 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   List<_PreviewEntry> _previewEntries() {
     final byRole = <String, List<CustomBouquetItem>>{
       'wrap': [],
+      'box': [],
       'green': [],
       'flower': [],
-      'balloon': [],
-      'side': [],
+      'extra': [],
       'front': [],
     };
 
@@ -308,12 +307,12 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
       for (final item in _itemsForGroup(group)) {
         final quantity = _quantities[item.id] ?? 0;
         for (var index = 0; index < quantity; index += 1) {
-          final total = byRole.values.fold<int>(
-            0,
-            (sum, roleItems) => sum + roleItems.length,
-          );
-          if (total >= 40) break;
-          byRole[_previewRole(item)]?.add(item);
+          final role = _previewRole(item);
+          final roleItems = byRole[role];
+          if (roleItems == null) continue;
+          final roleLimit = role == 'flower' ? _maxFlowerCount : 10;
+          if (roleItems.length >= roleLimit) break;
+          roleItems.add(item);
         }
       }
     }
@@ -321,14 +320,20 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     final entries = <_PreviewEntry>[];
     for (final role in const [
       'wrap',
+      'box',
       'green',
       'flower',
-      'balloon',
-      'side',
+      'extra',
       'front',
     ]) {
       final items = byRole[role] ?? const <CustomBouquetItem>[];
-      for (var index = 0; index < items.length; index += 1) {
+      final indices = List<int>.generate(items.length, (index) => index);
+      if (role == 'flower') {
+        indices.sort(
+          (a, b) => _flowerPaintRank(a).compareTo(_flowerPaintRank(b)),
+        );
+      }
+      for (final index in indices) {
         entries.add(
           _PreviewEntry(
             item: items[index],
@@ -345,13 +350,12 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   String _previewRole(CustomBouquetItem item) {
     final image = item.displayImage.toLowerCase().replaceAll('_', '-');
     if (image.contains('kraft-wrap')) return 'wrap';
+    if (image.contains('premium-box')) return 'box';
     if (image.contains('green-leaf')) return 'green';
     if (image.contains('satin-ribbon')) return 'front';
-    if (image.contains('balloon')) return 'balloon';
-    if (image.contains('card') || image.contains('premium-box')) return 'side';
     if (item.group == 'flowers') return 'flower';
     if (item.group == 'wrapping') return 'wrap';
-    return 'side';
+    return 'extra';
   }
 
   Widget _buildPreviewSticker(
@@ -381,52 +385,50 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   ) {
     final index = entry.roleIndex;
     final count = entry.roleCount;
-    final progress = count <= 1 ? 0.5 : index / (count - 1);
 
     switch (entry.role) {
       case 'wrap':
-        final stickerWidth = math.min(width * 0.34, 136.0);
-        final centerOffset = (index - ((count - 1) / 2)) * 18.0;
+        final flowerCount = math.min(_selectedFlowerCount, 14);
+        final stickerWidth = math.min(
+          width * (0.60 + (flowerCount * 0.006)),
+          244.0,
+        );
+        final centerOffset = (index - ((count - 1) / 2)) * 14.0;
         return _PreviewPlacement(
           left: (width / 2) + centerOffset - (stickerWidth / 2),
-          top: height * 0.31 + (index.isEven ? 0 : 6),
+          top: height * 0.18 + (index.isEven ? 0 : 8),
           width: stickerWidth,
           angle: (index.isEven ? -0.06 : 0.07),
         );
+      case 'box':
+        final flowerCount = math.min(_selectedFlowerCount, 14);
+        final stickerWidth = math.min(
+          width * (0.50 + (flowerCount * 0.005)),
+          204.0,
+        );
+        final centerOffset = (index - ((count - 1) / 2)) * 16.0;
+        return _PreviewPlacement(
+          left: (width / 2) + centerOffset - (stickerWidth / 2),
+          top: height * 0.38 + (index.isEven ? 0 : 8),
+          width: stickerWidth,
+          angle: index.isEven ? -0.03 : 0.04,
+        );
       case 'green':
-        final stickerWidth = math.min(width * 0.22, 86.0);
+        final stickerWidth = math.min(width * 0.21, 84.0);
         final direction = index.isEven ? -1.0 : 1.0;
         final tier = index ~/ 2;
         return _PreviewPlacement(
           left:
               (width * 0.5) +
-              (direction * width * 0.15) +
-              (tier * direction * 7) -
+              (direction * width * 0.12) +
+              (tier * direction * 5) -
               (stickerWidth / 2),
-          top: height * 0.15 + (tier * 7),
+          top: height * 0.16 - (tier * 5),
           width: stickerWidth,
           angle: direction * 0.48,
         );
       case 'flower':
-        final spread = math.min(width * 0.40, 150.0);
-        final stickerWidth = count <= 4
-            ? math.min(width * 0.25, 98.0)
-            : math.max(54.0, math.min(86.0, width / (count + 1.5)));
-        return _PreviewPlacement(
-          left:
-              (width * 0.5) + ((progress - 0.5) * spread) - (stickerWidth / 2),
-          top: height * 0.27 - ((index % 3) * 5),
-          width: stickerWidth,
-          angle: -0.36 + (progress * 0.72),
-        );
-      case 'balloon':
-        final stickerWidth = math.min(width * 0.22, 84.0);
-        return _PreviewPlacement(
-          left: width * 0.08 + (index * 10),
-          top: height * 0.12 + ((index % 2) * 12),
-          width: stickerWidth,
-          angle: -0.16 + (index % 3) * 0.08,
-        );
+        return _flowerPlacement(entry, width, height);
       case 'front':
         final stickerWidth = math.min(width * 0.31, 122.0);
         return _PreviewPlacement(
@@ -434,44 +436,239 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
               (width / 2) -
               (stickerWidth / 2) +
               ((index - ((count - 1) / 2)) * 10),
-          top: height * 0.62 + ((index % 2) * 5),
+          top: height * 0.68 + ((index % 2) * 5),
           width: stickerWidth,
           angle: index.isEven ? -0.04 : 0.05,
         );
       default:
-        final stickerWidth = math.min(width * 0.24, 100.0);
-        final rightSide = index.isOdd;
-        final tier = index ~/ 2;
-        return _PreviewPlacement(
-          left: rightSide
-              ? width * 0.72 - (tier * 8)
-              : width * 0.08 + (tier * 8),
-          top: height * 0.22 + (tier * 12),
-          width: stickerWidth,
-          angle: rightSide ? 0.18 : -0.18,
-        );
+        return _extraPlacement(entry, width, height);
     }
+  }
+
+  List<_FlowerSlot> get _firstFlowerOval => const [
+    _FlowerSlot(x: 0, y: -0.04, angle: 0.03),
+    _FlowerSlot(x: -0.105, y: -0.018, angle: -0.20),
+    _FlowerSlot(x: 0.105, y: -0.018, angle: 0.20),
+    _FlowerSlot(x: -0.14, y: 0.022, angle: -0.24),
+    _FlowerSlot(x: 0.14, y: 0.022, angle: 0.24),
+    _FlowerSlot(x: 0, y: 0.042, angle: -0.02),
+  ];
+
+  double _flowerPaintRank(int index) {
+    if (index == 0) return 50;
+
+    if (index <= _firstFlowerOval.length) {
+      final y = _firstFlowerOval[index - 1].y;
+      return y < 0 ? 20 + y : 70 + y;
+    }
+
+    final overflow = index - _firstFlowerOval.length - 1;
+    const slotsPerRing = 10;
+    final ring = (overflow ~/ slotsPerRing) + 1;
+    final slot = overflow % slotsPerRing;
+    final stagger = ring.isEven ? 0.18 : -0.10;
+    final angle = (math.pi / 2) + stagger + (slot * 2 * math.pi / slotsPerRing);
+    final y = math.sin(angle);
+    return y < 0 ? 10 + ring + y : 80 + ring + y;
+  }
+
+  _PreviewPlacement _flowerPlacement(
+    _PreviewEntry entry,
+    double width,
+    double height,
+  ) {
+    final index = entry.roleIndex;
+    final count = entry.roleCount;
+    final image = entry.item.displayImage.toLowerCase();
+    final isTulip = image.contains('tulip');
+    final angleOffset = isTulip ? -0.16 : 0.0;
+    final baseWidth = math.min(width * 0.25, 98.0);
+    final shrink = count <= 7 ? 0.0 : math.min(20.0, (count - 7) * 1.1);
+    final stickerWidth =
+        math.max(62.0, baseWidth - shrink) * (isTulip ? 0.76 : 1.0);
+
+    if (index == 0) {
+      return _PreviewPlacement(
+        left: (width / 2) - (stickerWidth / 2),
+        top: height * 0.27,
+        width: stickerWidth,
+        angle: angleOffset,
+      );
+    }
+
+    if (index <= _firstFlowerOval.length) {
+      final slot = _firstFlowerOval[index - 1];
+      return _PreviewPlacement(
+        left: (width * (0.5 + slot.x)) - (stickerWidth / 2),
+        top: height * (0.27 + slot.y),
+        width: stickerWidth,
+        angle: slot.angle + angleOffset,
+      );
+    }
+
+    final overflow = index - _firstFlowerOval.length - 1;
+    const slotsPerRing = 10;
+    final ring = (overflow ~/ slotsPerRing) + 1;
+    final int slot = overflow % slotsPerRing;
+    final stagger = ring.isEven ? 0.18 : -0.10;
+    final angle = (math.pi / 2) + stagger + (slot * 2 * math.pi / slotsPerRing);
+    final xRadius = math.min(0.15 + (ring * 0.022), 0.25);
+    final yRadius = math.min(0.048 + (ring * 0.012), 0.09);
+    final centerY = 0.35 + ((ring - 1) * 0.018);
+    final x = math.cos(angle) * xRadius;
+    final y = math.sin(angle) * yRadius;
+    final topFactor = (centerY + y).clamp(0.24, 0.52).toDouble();
+    final turn = (slot.isEven ? 0.18 : -0.18) + (ring * 0.02);
+
+    return _PreviewPlacement(
+      left: (width * (0.5 + x)) - (stickerWidth / 2),
+      top: height * topFactor,
+      width: stickerWidth,
+      angle: turn + angleOffset,
+    );
+  }
+
+  _PreviewPlacement _extraPlacement(
+    _PreviewEntry entry,
+    double width,
+    double height,
+  ) {
+    final image = entry.item.displayImage.toLowerCase();
+    final isBalloon = image.contains('balloon');
+    final stickerWidth = isBalloon
+        ? math.min(width * 0.22, 84.0)
+        : math.min(width * 0.25, 98.0);
+    final placements = [
+      _PreviewPlacement(
+        left: width * 0.70,
+        top: height * (isBalloon ? 0.10 : 0.22),
+        width: stickerWidth,
+        angle: 0.16,
+      ),
+      _PreviewPlacement(
+        left: width * 0.06,
+        top: height * (isBalloon ? 0.12 : 0.23),
+        width: stickerWidth,
+        angle: -0.16,
+      ),
+      _PreviewPlacement(
+        left: width * 0.16,
+        top: height * 0.42,
+        width: stickerWidth,
+        angle: -0.08,
+      ),
+      _PreviewPlacement(
+        left: width * 0.66,
+        top: height * 0.42,
+        width: stickerWidth,
+        angle: 0.08,
+      ),
+    ];
+
+    return placements[entry.roleIndex % placements.length];
   }
 
   Widget _buildGroup(AppText t, String group) {
     final items = _itemsForGroup(group);
     if (items.isEmpty) return const SizedBox.shrink();
+    final expanded = _expandedGroups.contains(group);
+    final selectedCount = _selectedCountForGroup(group);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t.customGroupLabel(group),
-            style: TextStyle(
-              color: darkPink,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF6F8),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: expanded ? darkPink : lightPink),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.customGroupLabel(group),
+                        style: TextStyle(
+                          color: darkPink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (group == 'flowers') ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          t.pick(
+                            kz: 'Бір букетке $_maxFlowerCount гүлге дейін: $_selectedFlowerCount/$_maxFlowerCount',
+                            ru: 'До $_maxFlowerCount цветов в букете: $_selectedFlowerCount/$_maxFlowerCount',
+                            en: 'Up to $_maxFlowerCount flowers per bouquet: $_selectedFlowerCount/$_maxFlowerCount',
+                          ),
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (selectedCount > 0)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$selectedCount',
+                      style: TextStyle(
+                        color: darkPink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 34,
+                    minHeight: 34,
+                  ),
+                  onPressed: () => _toggleGroup(group),
+                  icon: Icon(
+                    expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: darkPink,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          ...items.map((item) => _buildItemRow(t, item)),
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Column(
+                children: items.map((item) => _buildItemRow(t, item)).toList(),
+              ),
+            ),
+            crossFadeState: expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 180),
+          ),
         ],
       ),
     );
@@ -554,7 +751,9 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          _quantityStepper(item, quantity),
+          item.group == 'wrapping'
+              ? _checkmarkToggle(item, quantity > 0, disabled)
+              : _quantityStepper(item, quantity),
         ],
       ),
     );
@@ -603,10 +802,40 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
           ),
           _stepButton(
             icon: Icons.add,
-            enabled: item.available && quantity < item.stockCount,
+            enabled: item.available && quantity < _maxQuantityForItem(item),
             onTap: () => _changeQuantity(item, 1),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _checkmarkToggle(
+    CustomBouquetItem item,
+    bool selected,
+    bool disabled,
+  ) {
+    final enabled = item.available && !disabled;
+    return InkWell(
+      onTap: enabled ? () => _toggleWrappingItem(item) : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: selected ? darkPink : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? darkPink : (enabled ? lightPink : Colors.black12),
+          ),
+        ),
+        child: Icon(
+          Icons.check_rounded,
+          size: 20,
+          color: selected
+              ? Colors.white
+              : (enabled ? darkPink.withValues(alpha: 0.55) : Colors.black26),
+        ),
       ),
     );
   }
@@ -766,4 +995,12 @@ class _PreviewPlacement {
     required this.width,
     required this.angle,
   });
+}
+
+class _FlowerSlot {
+  final double x;
+  final double y;
+  final double angle;
+
+  const _FlowerSlot({required this.x, required this.y, required this.angle});
 }
