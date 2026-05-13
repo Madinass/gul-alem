@@ -157,16 +157,19 @@ class _ShopScreenState extends State<ShopScreen> {
                               ),
 
                               Align(
-                                alignment: Alignment.bottomLeft,
+                                alignment: Alignment.bottomCenter,
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       Text(
                                         t.productName(product),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -174,9 +177,12 @@ class _ShopScreenState extends State<ShopScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                      Wrap(
+                                        alignment: WrapAlignment.center,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 4,
                                         children: [
                                           Container(
                                             padding: const EdgeInsets.symmetric(
@@ -190,6 +196,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                             ),
                                             child: Text(
                                               t.priceValue(product.price),
+                                              textAlign: TextAlign.center,
                                             ),
                                           ),
                                           Container(
@@ -200,12 +207,17 @@ class _ShopScreenState extends State<ShopScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
-                                            child: IconButton(
-                                              onPressed: () {},
-                                              icon: const Icon(
-                                                Icons.shopping_cart,
-                                                color: Colors.white,
-                                                size: 20,
+                                            child: SizedBox(
+                                              width: 40,
+                                              height: 40,
+                                              child: IconButton(
+                                                padding: EdgeInsets.zero,
+                                                onPressed: () {},
+                                                icon: const Icon(
+                                                  Icons.shopping_cart,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
                                               ),
                                             ),
                                           ),

@@ -244,50 +244,80 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
 
   Widget _buildBouquetPreview() {
     final entries = _previewEntries();
+    final t = context.t;
 
     return Container(
       height: 390,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF6F8),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFF8FA), Color(0xFFFFFFFF)],
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: lightPink),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final height = constraints.maxHeight;
-            return Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                Positioned(
-                  left: width * 0.24,
-                  right: width * 0.24,
-                  bottom: 18,
-                  child: Container(
-                    height: 18,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(100),
+                      color: lightPink.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.auto_awesome, size: 16, color: darkPink),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      t.bouquetVisualization,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: darkPink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                if (entries.isEmpty)
-                  Center(
-                    child: Icon(
-                      Icons.local_florist,
-                      color: darkPink.withValues(alpha: 0.34),
-                      size: 58,
-                    ),
-                  )
-                else
-                  for (final entry in entries)
-                    _buildPreviewSticker(entry, width, height),
-              ],
-            );
-          },
+                ],
+              ),
+            ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final height = constraints.maxHeight;
+                  return Stack(
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      if (entries.isEmpty)
+                        Center(
+                          child: Icon(
+                            Icons.local_florist,
+                            color: darkPink.withValues(alpha: 0.34),
+                            size: 58,
+                          ),
+                        )
+                      else
+                        for (final entry in entries)
+                          _buildPreviewSticker(entry, width, height),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

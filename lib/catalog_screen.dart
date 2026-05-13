@@ -220,6 +220,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 ],
                               ),
                               child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Expanded(
                                     child: ClipRRect(
@@ -239,18 +240,22 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
                                       children: [
                                         Text(
                                           t.productName(product),
+                                          textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                           ),
-                                          maxLines: 1,
+                                          maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           t.priceValue(product.price),
+                                          textAlign: TextAlign.center,
                                           style: TextStyle(color: darkPink),
                                         ),
                                       ],

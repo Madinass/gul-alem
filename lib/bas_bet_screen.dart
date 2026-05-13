@@ -498,6 +498,7 @@ class _BasBetScreenState extends State<BasBetScreen>
             child: Stack(
               children: [
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 10),
                     Expanded(
@@ -525,6 +526,7 @@ class _BasBetScreenState extends State<BasBetScreen>
                     const SizedBox(height: 4),
                     Text(
                       context.t.priceValue(product.price),
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: darkPink,
                         fontWeight: FontWeight.w600,
@@ -612,7 +614,7 @@ class _BasBetScreenState extends State<BasBetScreen>
       height: 280,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: popularProducts.length,
         itemBuilder: (context, index) {
           final product = popularProducts[index];
@@ -621,7 +623,7 @@ class _BasBetScreenState extends State<BasBetScreen>
             onTap: () => showAddToCartSheet(context, product),
             child: Container(
               width: 170,
-              margin: const EdgeInsets.only(left: 20),
+              margin: const EdgeInsets.only(right: 14),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -636,6 +638,7 @@ class _BasBetScreenState extends State<BasBetScreen>
               child: Stack(
                 children: [
                   Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 10),
                       Expanded(
@@ -650,13 +653,20 @@ class _BasBetScreenState extends State<BasBetScreen>
                         ),
                       ),
                       const SizedBox(height: 5),
-                      Text(
-                        t.productName(product),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          t.productName(product),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         t.priceValue(product.price),
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: darkPink,
                           fontWeight: FontWeight.w600,

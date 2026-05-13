@@ -277,6 +277,11 @@ class AppText {
     ru: 'Выбирайте детали и сразу видите цену.',
     en: 'Pick each item and see the price instantly.',
   );
+  String get bouquetVisualization => pick(
+    kz: 'Букеттің көрінісі',
+    ru: 'Визуализация букета',
+    en: 'Bouquet preview',
+  );
   String get bouquetOptions =>
       pick(kz: 'Бөліктер', ru: 'Детали', en: 'Options');
   String get bouquetDescription =>

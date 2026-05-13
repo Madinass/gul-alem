@@ -165,6 +165,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                           child: Stack(
                             children: [
                               Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Expanded(
                                     child: ClipRRect(
@@ -184,9 +185,14 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
                                       children: [
                                         Text(
                                           t.productName(product),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -194,6 +200,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                                         const SizedBox(height: 4),
                                         Text(
                                           t.priceValue(product.price),
+                                          textAlign: TextAlign.center,
                                           style: TextStyle(color: darkPink),
                                         ),
                                         if (!product.inStock)
@@ -203,12 +210,20 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                                             ),
                                             child: Text(
                                               t.outOfStock,
+                                              textAlign: TextAlign.center,
                                               style: const TextStyle(
                                                 color: Colors.red,
                                                 fontSize: 12,
                                               ),
                                             ),
                                           ),
+                                        IconButton(
+                                          onPressed: () => _addToCart(product),
+                                          icon: Icon(
+                                            Icons.add_circle,
+                                            color: darkPink,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -225,14 +240,6 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                                         : Icons.favorite_border,
                                     color: darkPink,
                                   ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: IconButton(
-                                  onPressed: () => _addToCart(product),
-                                  icon: Icon(Icons.add_circle, color: darkPink),
                                 ),
                               ),
                             ],
