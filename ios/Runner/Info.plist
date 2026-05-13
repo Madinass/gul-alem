@@ -24,6 +24,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is used to search products by photo and add product images.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The app uses your location to show the nearest pickup store.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photo library access is used to search products by photo and add product images.</string>
 	<key>LSRequiresIPhoneOS</key>

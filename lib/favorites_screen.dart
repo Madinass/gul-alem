@@ -177,12 +177,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                     product.id,
                                     quantity: 1,
                                   );
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text(t.addedToCart)),
                                   );
                                 } catch (_) {
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text(t.addToCartFailed)),
                                   );

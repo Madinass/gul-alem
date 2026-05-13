@@ -34,6 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadSession() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _name = prefs.getString('auth_name') ?? '';
       _email = prefs.getString('auth_email') ?? '';
@@ -68,10 +69,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       _showSnack(context.t.loadPaymentMethodsFailed);
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _paymentLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _paymentLoading = false;
+        });
+      }
     }
   }
 
@@ -87,8 +89,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       _showSnack(context.t.loadOrdersFailed);
     } finally {
-      if (!mounted) return;
-      setState(() => _ordersLoading = false);
+      if (mounted) {
+        setState(() => _ordersLoading = false);
+      }
     }
   }
 
@@ -118,13 +121,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) Navigator.of(context).pop();
       }
       if (existing == null) return;
+      if (!mounted) return;
     }
 
     final nameController = TextEditingController(
       text: existing?['cardholderName'] ?? '',
     );
     final numberController = TextEditingController(
-      text: existing?['cardNumber'] ?? '',
+      text: existing?['maskedCardNumber'] ?? '',
     );
     final expMonthController = TextEditingController(
       text: existing?['expMonth'] ?? '',
@@ -144,8 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        final viewInsets = MediaQuery.of(context).viewInsets;
+      builder: (sheetContext) {
+        final viewInsets = MediaQuery.of(sheetContext).viewInsets;
         return Padding(
           padding: EdgeInsets.only(
             left: 20,
@@ -167,11 +171,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               _buildTextField(t.cardholderName, nameController),
               const SizedBox(height: 12),
-              _buildTextField(
-                t.cardNumber,
-                numberController,
-                keyboardType: TextInputType.number,
-              ),
+              if (isEdit)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF6F8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    numberController.text.isEmpty
+                        ? '****'
+                        : numberController.text,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                )
+              else
+                _buildTextField(
+                  t.cardNumber,
+                  numberController,
+                  keyboardType: TextInputType.number,
+                ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -192,13 +215,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                'CVV',
-                cvvController,
-                keyboardType: TextInputType.number,
-                obscure: true,
-              ),
+              if (!isEdit) ...[
+                const SizedBox(height: 12),
+                _buildTextField(
+                  'CVV',
+                  cvvController,
+                  keyboardType: TextInputType.number,
+                  obscure: true,
+                ),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -217,10 +242,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final expYear = expYearController.text.trim();
                     final cvv = cvvController.text.trim();
                     if (name.isEmpty ||
-                        number.isEmpty ||
                         expMonth.isEmpty ||
                         expYear.isEmpty ||
-                        cvv.isEmpty) {
+                        (!isEdit && (number.isEmpty || cvv.isEmpty))) {
                       _showSnack(t.fillAllFields);
                       return;
                     }
@@ -229,10 +253,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         await ApiService.updatePaymentMethod(
                           id: methodId,
                           cardholderName: name,
-                          cardNumber: number,
                           expMonth: expMonth,
                           expYear: expYear,
-                          cvv: cvv,
                         );
                       } else {
                         await ApiService.createPaymentMethod(
@@ -243,8 +265,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           cvv: cvv,
                         );
                       }
-                      if (!mounted) return;
-                      Navigator.of(context).pop();
+                      if (!sheetContext.mounted) return;
+                      Navigator.of(sheetContext).pop();
                       await _loadPaymentMethods();
                     } catch (error) {
                       if (!mounted) return;
@@ -265,7 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(sheetContext).pop(),
                   child: Text(
                     t.cancel,
                     style: const TextStyle(color: Colors.black87),
@@ -483,6 +505,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (order.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(t.descriptionWith(order.description)),
+                  ],
+                  const SizedBox(height: 6),
+                  Text(
+                    order.deliveryMethod == 'courier'
+                        ? 'Delivery method: Courier delivery'
+                        : 'Delivery method: Pickup from store',
+                  ),
+                  if (order.deliveryMethod == 'pickup' &&
+                      order.pickupStore != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                            order.pickupStore?['name']?.toString(),
+                            order.pickupStore?['address']?.toString(),
+                          ]
+                          .whereType<String>()
+                          .where((value) => value.isNotEmpty)
+                          .join(' - '),
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                  ],
+                  if (order.deliveryMethod == 'courier' &&
+                      (order.deliveryAddress ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Delivery address: ${order.deliveryAddress}',
+                      style: const TextStyle(color: Colors.black54),
+                    ),
                   ],
                   const SizedBox(height: 6),
                   Text(

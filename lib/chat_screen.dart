@@ -139,7 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       String? sessionId = _activeSessionId;
       if (sessionId == null) {
-        final session = await ApiService.createChatSession(title: userText);
+        final session = await ApiService.createChatSession();
         sessionId = session['id'];
         if (!mounted) return;
         setState(() {
@@ -179,6 +179,21 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.clear();
     });
     _loadSessions();
+  }
+
+  Future<void> _deleteSession(ChatSession session) async {
+    try {
+      await ApiService.deleteChatSession(session.id);
+      if (!mounted) return;
+      setState(() {
+        _sessions.removeWhere((item) => item.id == session.id);
+        if (_activeSessionId == session.id) {
+          _activeSessionId = null;
+          _activeTitle = _advisorTitle;
+          _messages.clear();
+        }
+      });
+    } catch (_) {}
   }
 
   String _localizedTitle(AppText t, String title) {
@@ -273,7 +288,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        color: Colors.black45,
+                        onPressed: () => _deleteSession(session),
+                      ),
                       onTap: () => _loadMessages(session.id),
                     );
                   },

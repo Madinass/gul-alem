@@ -102,6 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         name: data['name'] ?? '',
       );
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(t.registrationSuccess),
@@ -114,6 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(t.serverConnectionErrorWith(e)),

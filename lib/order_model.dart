@@ -1,3 +1,9 @@
+int _readInt(dynamic value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return fallback;
+}
+
 class OrderItem {
   final String name;
   final String imagePath;
@@ -15,12 +21,8 @@ class OrderItem {
     return OrderItem(
       name: json['name'] ?? '',
       imagePath: json['imagePath'] ?? '',
-      price: (json['price'] ?? 0) is int
-          ? json['price']
-          : (json['price'] as num).toInt(),
-      quantity: (json['quantity'] ?? 1) is int
-          ? json['quantity']
-          : (json['quantity'] as num).toInt(),
+      price: _readInt(json['price']),
+      quantity: _readInt(json['quantity'], 1),
     );
   }
 }
@@ -30,6 +32,11 @@ class OrderModel {
   final String orderType;
   final String description;
   final List<OrderItem> items;
+  final int subtotal;
+  final String deliveryMethod;
+  final int deliveryPrice;
+  final Map<String, dynamic>? pickupStore;
+  final String? deliveryAddress;
   final int total;
   final String status;
   final DateTime createdAt;
@@ -39,6 +46,11 @@ class OrderModel {
     required this.orderType,
     required this.description,
     required this.items,
+    required this.subtotal,
+    required this.deliveryMethod,
+    required this.deliveryPrice,
+    required this.pickupStore,
+    required this.deliveryAddress,
     required this.total,
     required this.status,
     required this.createdAt,
@@ -51,9 +63,14 @@ class OrderModel {
       orderType: json['orderType']?.toString() ?? 'standard',
       description: json['description']?.toString() ?? '',
       items: rawItems.map((item) => OrderItem.fromJson(item ?? {})).toList(),
-      total: (json['total'] ?? 0) is int
-          ? json['total']
-          : (json['total'] as num).toInt(),
+      subtotal: _readInt(json['subtotal'] ?? json['total']),
+      deliveryMethod: json['deliveryMethod']?.toString() ?? 'pickup',
+      deliveryPrice: _readInt(json['deliveryPrice']),
+      pickupStore: json['pickupStore'] is Map
+          ? Map<String, dynamic>.from(json['pickupStore'] as Map)
+          : null,
+      deliveryAddress: json['deliveryAddress']?.toString(),
+      total: _readInt(json['total']),
       status: json['status'] ?? 'pending',
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );

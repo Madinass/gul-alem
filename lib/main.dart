@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'app_language.dart';
 import 'home_screen.dart';
 import 'main_wrapper.dart';
+import 'services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('auth_token');
-  final hasSession = token != null && token.isNotEmpty;
+  final hasSession = await ApiService.hasValidSession();
   final languageController = AppLanguageController();
   await languageController.load();
   runApp(

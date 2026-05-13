@@ -26,8 +26,10 @@ class _BasBetScreenState extends State<BasBetScreen>
   late final AnimationController _aboutUsRibbonController;
 
   List<Product> popularProducts = [];
+  List<Product> recommendedProducts = [];
   List<Product> allProducts = [];
   bool _loadingPopular = true;
+  bool _loadingRecommendations = true;
   bool _loadingAll = true;
   bool _photoSearching = false;
   bool _photoSearchActive = false;
@@ -43,6 +45,7 @@ class _BasBetScreenState extends State<BasBetScreen>
       duration: const Duration(seconds: 14),
     )..repeat();
     _loadPopular();
+    _loadRecommendations();
     _loadAllProducts();
     _loadFavorites();
   }
@@ -65,6 +68,20 @@ class _BasBetScreenState extends State<BasBetScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingPopular = false);
+    }
+  }
+
+  Future<void> _loadRecommendations() async {
+    try {
+      final data = await ApiService.fetchRecommendations(limit: 8);
+      if (!mounted) return;
+      setState(() {
+        recommendedProducts = data;
+        _loadingRecommendations = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingRecommendations = false);
     }
   }
 
@@ -307,6 +324,9 @@ class _BasBetScreenState extends State<BasBetScreen>
             ] else if (_searchQuery.trim().isNotEmpty) ...[
               _buildSearchResults(),
             ] else ...[
+              _buildRecommendationsSection(),
+              if (_loadingRecommendations || recommendedProducts.isNotEmpty)
+                const SizedBox(height: 25),
               _buildPopularHeader(),
               _buildPopularList(),
               const SizedBox(height: 25),
@@ -489,7 +509,7 @@ class _BasBetScreenState extends State<BasBetScreen>
               border: Border.all(color: lightPink),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -548,7 +568,7 @@ class _BasBetScreenState extends State<BasBetScreen>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
+                        color: Colors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -568,7 +588,22 @@ class _BasBetScreenState extends State<BasBetScreen>
     );
   }
 
-  Widget _buildPopularHeader() {
+  Widget _buildRecommendationsSection() {
+    if (!_loadingRecommendations && recommendedProducts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      children: [
+        _buildSectionHeader(context.t.recommendedForYou),
+        _buildProductRail(
+          recommendedProducts,
+          loading: _loadingRecommendations,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, {bool showMore = false}) {
     final t = context.t;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -576,25 +611,34 @@ class _BasBetScreenState extends State<BasBetScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            t.popularFlowers,
+            title,
             style: TextStyle(
               color: darkPink,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
           ),
-          Text(
-            t.more,
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
-          ),
+          if (showMore)
+            Text(
+              t.more,
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
+            ),
         ],
       ),
     );
   }
 
+  Widget _buildPopularHeader() {
+    return _buildSectionHeader(context.t.popularFlowers, showMore: true);
+  }
+
   Widget _buildPopularList() {
+    return _buildProductRail(popularProducts, loading: _loadingPopular);
+  }
+
+  Widget _buildProductRail(List<Product> products, {required bool loading}) {
     final t = context.t;
-    if (_loadingPopular) {
+    if (loading) {
       return const SizedBox(
         height: 280,
         child: Center(
@@ -603,7 +647,7 @@ class _BasBetScreenState extends State<BasBetScreen>
       );
     }
 
-    if (popularProducts.isEmpty) {
+    if (products.isEmpty) {
       return SizedBox(
         height: 280,
         child: Center(child: Text(t.productsNotFound)),
@@ -615,9 +659,9 @@ class _BasBetScreenState extends State<BasBetScreen>
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: popularProducts.length,
+        itemCount: products.length,
         itemBuilder: (context, index) {
-          final product = popularProducts[index];
+          final product = products[index];
           final isFav = _favoriteIds.contains(product.id);
           return GestureDetector(
             onTap: () => showAddToCartSheet(context, product),
@@ -630,7 +674,7 @@ class _BasBetScreenState extends State<BasBetScreen>
                 border: Border.all(color: lightPink),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                   ),
                 ],
@@ -700,7 +744,7 @@ class _BasBetScreenState extends State<BasBetScreen>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -880,7 +924,7 @@ class _BasBetScreenState extends State<BasBetScreen>
           fit: BoxFit.cover,
           alignment: alignment,
           colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.4),
+            Colors.black.withValues(alpha: 0.4),
             BlendMode.darken,
           ),
         ),
@@ -918,7 +962,7 @@ class _BasBetScreenState extends State<BasBetScreen>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: darkPink.withOpacity(0.3),
+                color: darkPink.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),

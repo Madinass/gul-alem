@@ -33,6 +33,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _nextStep() async {
     if (_isSubmitting) return;
+    final t = context.t;
     setState(() {
       _errorMessage = null;
       _isSubmitting = true;
@@ -45,11 +46,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
           if (!emailOk) {
             setState(() {
-              _errorMessage = context.t.invalidEmail;
+              _errorMessage = t.invalidEmail;
             });
             return;
           }
           await ApiService.requestPasswordReset(email);
+          if (!mounted) return;
           setState(() {
             _currentStep = ForgotPasswordStep.verifyCode;
           });
@@ -58,7 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         case ForgotPasswordStep.verifyCode:
           if (_codeController.text.length != 6) {
             setState(() {
-              _errorMessage = context.t.codeLengthError;
+              _errorMessage = t.codeLengthError;
             });
             return;
           }
@@ -66,9 +68,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             _emailController.text.trim(),
             _codeController.text,
           );
+          if (!mounted) return;
           if (resetToken.isEmpty) {
             setState(() {
-              _errorMessage = context.t.wrongCode;
+              _errorMessage = t.wrongCode;
             });
             return;
           }
@@ -82,20 +85,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           if (_passwordController.text.isEmpty ||
               _confirmPasswordController.text.isEmpty) {
             setState(() {
-              _errorMessage = context.t.newPasswordRequired;
+              _errorMessage = t.newPasswordRequired;
             });
             return;
           }
           if (_passwordController.text != _confirmPasswordController.text) {
             setState(() {
-              _errorMessage = context.t.passwordsDoNotMatch;
+              _errorMessage = t.passwordsDoNotMatch;
             });
             return;
           }
           final password = _passwordController.text;
           if (password.length < 8 || password.length > 64) {
             setState(() {
-              _errorMessage = context.t.passwordLengthRule;
+              _errorMessage = t.passwordLengthRule;
             });
             return;
           }
@@ -103,13 +106,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           final hasSpecial = RegExp(r'[^\w\s]').hasMatch(password);
           if (!hasNumber || !hasSpecial) {
             setState(() {
-              _errorMessage = context.t.passwordSpecialRule;
+              _errorMessage = t.passwordSpecialRule;
             });
             return;
           }
           if (_resetToken == null || _resetToken!.isEmpty) {
             setState(() {
-              _errorMessage = context.t.passwordResetExpired;
+              _errorMessage = t.passwordResetExpired;
             });
             return;
           }
@@ -118,6 +121,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             resetToken: _resetToken!,
             newPassword: _passwordController.text,
           );
+          if (!mounted) return;
           setState(() {
             _currentStep = ForgotPasswordStep.success;
           });
@@ -130,13 +134,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = context.t.genericTryAgain;
+        _errorMessage = t.genericTryAgain;
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

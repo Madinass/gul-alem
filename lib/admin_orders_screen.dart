@@ -79,6 +79,16 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                     : (order['total'] as num).toInt();
                 final orderType = order['orderType']?.toString() ?? 'standard';
                 final description = order['description']?.toString() ?? '';
+                final deliveryMethod =
+                    order['deliveryMethod']?.toString() ?? 'pickup';
+                final deliveryPrice = (order['deliveryPrice'] ?? 0) is int
+                    ? order['deliveryPrice']
+                    : (order['deliveryPrice'] as num?)?.toInt() ?? 0;
+                final pickupStore = order['pickupStore'] is Map
+                    ? order['pickupStore'] as Map
+                    : null;
+                final deliveryAddress =
+                    order['deliveryAddress']?.toString() ?? '';
                 final user = order['user'] is Map<String, dynamic>
                     ? order['user'] as Map<String, dynamic>
                     : null;
@@ -122,6 +132,36 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                           const SizedBox(height: 6),
                           Text(t.descriptionWith(description)),
                         ],
+                        const SizedBox(height: 6),
+                        Text(
+                          deliveryMethod == 'courier'
+                              ? 'Delivery method: Courier delivery'
+                              : 'Delivery method: Pickup from store',
+                        ),
+                        if (deliveryMethod == 'pickup' &&
+                            pickupStore != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            [
+                                  pickupStore['name']?.toString(),
+                                  pickupStore['address']?.toString(),
+                                ]
+                                .whereType<String>()
+                                .where((value) => value.isNotEmpty)
+                                .join(' - '),
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                        ],
+                        if (deliveryMethod == 'courier' &&
+                            deliveryAddress.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Delivery address: $deliveryAddress',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        Text('Delivery fee: ${t.priceValue(deliveryPrice)}'),
                         const SizedBox(height: 6),
                         Text(t.totalWith(t.priceValue(total))),
                         const SizedBox(height: 6),

@@ -10,12 +10,37 @@ import '../notification_item.dart';
 import '../order_model.dart';
 import 'backend_config.dart' as backend_config;
 
+class AuthException implements Exception {
+  final String message;
+
+  const AuthException([this.message = 'Authentication required']);
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   static final String baseUrl = backend_config.baseUrl;
 
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
+  }
+
+  static Future<String> _requireToken() async {
+    final token = await _getToken();
+    if (token == null || token.isEmpty) {
+      await clearSession();
+      throw const AuthException();
+    }
+    return token;
+  }
+
+  static Future<bool> _isSuccess(http.Response response) async {
+    if (response.statusCode == 401) {
+      await clearSession();
+    }
+    return response.statusCode >= 200 && response.statusCode < 300;
   }
 
   static Future<void> storeSession({
@@ -39,6 +64,28 @@ class ApiService {
     await prefs.remove('auth_name');
   }
 
+  static Future<bool> hasValidSession() async {
+    final token = await _getToken();
+    if (token == null || token.isEmpty) return false;
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (await _isSuccess(response)) {
+        final data = jsonDecode(response.body);
+        await storeSession(
+          token: token,
+          role: data['role']?.toString() ?? 'user',
+          email: data['email']?.toString() ?? '',
+          name: data['name']?.toString() ?? '',
+        );
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   static Future<Map<String, dynamic>> login(
     String login,
     String password,
@@ -48,7 +95,7 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'login': login, 'password': password}),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Кіру сәтсіз');
@@ -70,7 +117,7 @@ class ApiService {
         'password': password,
       }),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Тіркелу сәтсіз');
@@ -82,7 +129,7 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Reset code send failed');
     }
   }
@@ -93,7 +140,7 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'code': code}),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final data = jsonDecode(response.body);
       return data['resetToken'] ?? '';
     }
@@ -114,14 +161,14 @@ class ApiService {
         'newPassword': newPassword,
       }),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Password reset failed');
     }
   }
 
   static Future<List<Category>> fetchCategories() async {
     final response = await http.get(Uri.parse('$baseUrl/categories'));
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => Category.fromJson(item)).toList();
     }
@@ -143,16 +190,32 @@ class ApiService {
       },
     );
     final response = await http.get(uri);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => Product.fromJson(item)).toList();
     }
     throw Exception('Өнімдерді жүктеу сәтсіз');
   }
 
+  static Future<List<Product>> fetchRecommendations({int limit = 8}) async {
+    final token = await _requireToken();
+    final uri = Uri.parse(
+      '$baseUrl/recommendations',
+    ).replace(queryParameters: {'limit': limit.toString()});
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (await _isSuccess(response)) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => Product.fromJson(item)).toList();
+    }
+    throw Exception('Ұсыныстарды жүктеу сәтсіз');
+  }
+
   static Future<List<CustomBouquetItem>> fetchCustomBouquetItems() async {
     final response = await http.get(Uri.parse('$baseUrl/custom-items'));
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => CustomBouquetItem.fromJson(item)).toList();
     }
@@ -162,7 +225,7 @@ class ApiService {
   static Future<CustomBouquetItem> createCustomBouquetItem(
     CustomBouquetItem item,
   ) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/custom-items'),
       headers: {
@@ -171,7 +234,7 @@ class ApiService {
       },
       body: jsonEncode(item.toJson()),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return CustomBouquetItem.fromJson(jsonDecode(response.body));
     }
     throw Exception('Жеке букет бөлігін құру сәтсіз');
@@ -180,7 +243,7 @@ class ApiService {
   static Future<CustomBouquetItem> updateCustomBouquetItem(
     CustomBouquetItem item,
   ) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.put(
       Uri.parse('$baseUrl/custom-items/${item.id}'),
       headers: {
@@ -189,19 +252,19 @@ class ApiService {
       },
       body: jsonEncode(item.toJson()),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return CustomBouquetItem.fromJson(jsonDecode(response.body));
     }
     throw Exception('Жеке букет бөлігін жаңарту сәтсіз');
   }
 
   static Future<void> deleteCustomBouquetItem(String id) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/custom-items/$id'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Жеке букет бөлігін өшіру сәтсіз');
     }
   }
@@ -214,7 +277,7 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'imageBase64': base64Encode(imageBytes)}),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final data = jsonDecode(response.body);
       final products = data is List ? data : data['products'];
       if (products is List) {
@@ -234,19 +297,19 @@ class ApiService {
   }
 
   static Future<List<dynamic>> fetchOrders() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/orders'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Тапсырыстарды жүктеу сәтсіз');
   }
 
   static Future<void> updateOrderStatus(String orderId, String status) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/orders/$orderId'),
       headers: {
@@ -255,25 +318,25 @@ class ApiService {
       },
       body: jsonEncode({'status': status}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Тапсырыс мәртебесін жаңарту сәтсіз');
     }
   }
 
   static Future<List<dynamic>> fetchAdmins() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/admins'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Әкімшілерді жүктеу сәтсіз');
   }
 
   static Future<void> addAdmin(String email, {String role = 'admin'}) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/admins'),
       headers: {
@@ -282,24 +345,24 @@ class ApiService {
       },
       body: jsonEncode({'email': email, 'role': role}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Әкімші қосу сәтсіз');
     }
   }
 
   static Future<void> removeAdmin(String email) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/admins/$email'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Әкімшіні жою сәтсіз');
     }
   }
 
   static Future<Product> createProduct(Product product) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/products'),
       headers: {
@@ -318,14 +381,14 @@ class ApiService {
         'popular': product.popular,
       }),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return Product.fromJson(jsonDecode(response.body));
     }
     throw Exception('Өнім құру сәтсіз');
   }
 
   static Future<Product> updateProduct(Product product) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.put(
       Uri.parse('$baseUrl/products/${product.id}'),
       headers: {
@@ -344,7 +407,7 @@ class ApiService {
         'popular': product.popular,
       }),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return Product.fromJson(jsonDecode(response.body));
     }
     throw Exception('Өнімді жаңарту сәтсіз');
@@ -355,7 +418,7 @@ class ApiService {
     bool inStock,
     int stockCount,
   ) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/products/$productId/stock'),
       headers: {
@@ -364,13 +427,13 @@ class ApiService {
       },
       body: jsonEncode({'inStock': inStock, 'stockCount': stockCount}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Қойма жаңарту сәтсіз');
     }
   }
 
   static Future<void> updatePopular(String productId, bool popular) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.put(
       Uri.parse('$baseUrl/products/$productId'),
       headers: {
@@ -379,36 +442,36 @@ class ApiService {
       },
       body: jsonEncode({'popular': popular}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Танымалдықты жаңарту сәтсіз');
     }
   }
 
   static Future<void> deleteProduct(String productId) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/products/$productId'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Өнімді жою сәтсіз');
     }
   }
 
   static Future<List<dynamic>> fetchChatSessions() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/ai/chats'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Чат тарихын жүктеу сәтсіз');
   }
 
   static Future<Map<String, dynamic>> createChatSession({String? title}) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chats'),
       headers: {
@@ -417,21 +480,32 @@ class ApiService {
       },
       body: jsonEncode({'title': title}),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Жаңа чат құру сәтсіз');
   }
 
+  static Future<void> deleteChatSession(String sessionId) async {
+    final token = await _requireToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/ai/chats/$sessionId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (!await _isSuccess(response)) {
+      throw Exception('Ð§Ð°Ñ‚Ñ‚Ñ‹ Ó©ÑˆÑ–Ñ€Ñƒ ÑÓ™Ñ‚ÑÑ–Ð·');
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchChatMessages(
     String sessionId,
   ) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/ai/chats/$sessionId'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Чат хабарламаларын жүктеу сәтсіз');
@@ -441,7 +515,7 @@ class ApiService {
     String message, {
     String? sessionId,
   }) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chat'),
       headers: {
@@ -450,31 +524,31 @@ class ApiService {
       },
       body: jsonEncode({'message': message, 'sessionId': sessionId}),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('AI хабарламасын жіберу сәтсіз');
   }
 
   static Future<List<dynamic>> fetchPaymentMethods() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/payment-methods'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Төлем әдістерін жүктеу сәтсіз');
   }
 
   static Future<Map<String, dynamic>> fetchPaymentMethod(String id) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/payment-methods/$id'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
     throw Exception('Төлем әдісін жүктеу сәтсіз');
@@ -487,7 +561,7 @@ class ApiService {
     required String expYear,
     required String cvv,
   }) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/payment-methods'),
       headers: {
@@ -502,7 +576,7 @@ class ApiService {
         'cvv': cvv,
       }),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Төлем әдісін құру сәтсіз');
     }
   }
@@ -510,12 +584,10 @@ class ApiService {
   static Future<void> updatePaymentMethod({
     required String id,
     required String cardholderName,
-    required String cardNumber,
     required String expMonth,
     required String expYear,
-    required String cvv,
   }) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.put(
       Uri.parse('$baseUrl/payment-methods/$id'),
       headers: {
@@ -524,35 +596,33 @@ class ApiService {
       },
       body: jsonEncode({
         'cardholderName': cardholderName,
-        'cardNumber': cardNumber,
         'expMonth': expMonth,
         'expYear': expYear,
-        'cvv': cvv,
       }),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Төлем әдісін жаңарту сәтсіз');
     }
   }
 
   static Future<void> deletePaymentMethod(String id) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/payment-methods/$id'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Төлем әдісін жою сәтсіз');
     }
   }
 
   static Future<List<Product>> fetchFavorites() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/favorites'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => Product.fromJson(item)).toList();
     }
@@ -560,7 +630,7 @@ class ApiService {
   }
 
   static Future<void> addFavorite(String productId) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/favorites'),
       headers: {
@@ -569,29 +639,29 @@ class ApiService {
       },
       body: jsonEncode({'productId': productId}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Таңдаулыға қосу сәтсіз');
     }
   }
 
   static Future<void> removeFavorite(String productId) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/favorites/$productId'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Таңдаулыдан жою сәтсіз');
     }
   }
 
   static Future<List<CartItem>> fetchCartItems() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/cart'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => CartItem.fromJson(item)).toList();
     }
@@ -599,7 +669,7 @@ class ApiService {
   }
 
   static Future<void> addToCart(String productId, {int quantity = 1}) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/cart'),
       headers: {
@@ -608,7 +678,7 @@ class ApiService {
       },
       body: jsonEncode({'productId': productId, 'quantity': quantity}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Себетке қосу сәтсіз');
     }
   }
@@ -617,7 +687,7 @@ class ApiService {
     String productId, {
     required int quantity,
   }) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/cart/$productId'),
       headers: {
@@ -626,45 +696,44 @@ class ApiService {
       },
       body: jsonEncode({'quantity': quantity}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Себетті жаңарту сәтсіз');
     }
   }
 
   static Future<void> removeFromCart(String productId) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/cart/$productId'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Себеттен жою сәтсіз');
     }
   }
 
   static Future<void> clearCart() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/cart'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Себетті тазалау сәтсіз');
     }
   }
 
-  static Future<OrderModel> createOrder(List<CartItem> items) async {
-    final token = await _getToken();
+  static Future<OrderModel> createOrder(
+    List<CartItem> items, {
+    required String deliveryMethod,
+    required int deliveryPrice,
+    Map<String, dynamic>? pickupStore,
+    String? deliveryAddress,
+  }) async {
+    final token = await _requireToken();
     final payload = items
         .map(
-          (item) => {
-            'productId': item.product.id,
-            'name': item.product.name,
-            'imagePath': item.product.imagePath,
-            'imageUrl': item.product.imageUrl,
-            'price': item.product.price,
-            'quantity': item.quantity,
-          },
+          (item) => {'productId': item.product.id, 'quantity': item.quantity},
         )
         .toList();
     final response = await http.post(
@@ -673,9 +742,15 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'items': payload}),
+      body: jsonEncode({
+        'items': payload,
+        'deliveryMethod': deliveryMethod,
+        'deliveryPrice': deliveryPrice,
+        'pickupStore': pickupStore,
+        'deliveryAddress': deliveryAddress,
+      }),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return OrderModel.fromJson(jsonDecode(response.body));
     }
     throw Exception('Тапсырыс жасау сәтсіз');
@@ -685,7 +760,7 @@ class ApiService {
     required List<Map<String, dynamic>> items,
     required String description,
   }) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/orders/custom'),
       headers: {
@@ -694,19 +769,19 @@ class ApiService {
       },
       body: jsonEncode({'items': items, 'description': description}),
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       return OrderModel.fromJson(jsonDecode(response.body));
     }
     throw Exception('Жеке букет тапсырысын жасау сәтсіз');
   }
 
   static Future<List<OrderModel>> fetchMyOrders() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/orders/my'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => OrderModel.fromJson(item)).toList();
     }
@@ -714,12 +789,12 @@ class ApiService {
   }
 
   static Future<List<NotificationItem>> fetchNotifications() async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.get(
       Uri.parse('$baseUrl/notifications'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    if (await _isSuccess(response)) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => NotificationItem.fromJson(item)).toList();
     }
@@ -731,7 +806,7 @@ class ApiService {
     String message = '',
     String type = 'system',
   }) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.post(
       Uri.parse('$baseUrl/notifications'),
       headers: {
@@ -740,18 +815,18 @@ class ApiService {
       },
       body: jsonEncode({'title': title, 'message': message, 'type': type}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Хабарлама құру сәтсіз');
     }
   }
 
   static Future<void> markNotificationRead(String id) async {
-    final token = await _getToken();
+    final token = await _requireToken();
     final response = await http.patch(
       Uri.parse('$baseUrl/notifications/$id'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (!await _isSuccess(response)) {
       throw Exception('Хабарламаны оқылғанға белгілеу сәтсіз');
     }
   }

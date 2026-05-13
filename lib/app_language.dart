@@ -217,6 +217,11 @@ class AppText {
   );
   String get popularFlowers =>
       pick(kz: 'Танымал гүлдер', ru: 'Популярные цветы', en: 'Popular flowers');
+  String get recommendedForYou => pick(
+    kz: 'Сізге арналған ұсыныстар',
+    ru: 'Рекомендации для вас',
+    en: 'Recommended for you',
+  );
   String get more => pick(kz: 'Толығырақ', ru: 'Подробнее', en: 'More');
   String get productsNotFound => pick(
     kz: 'Өнімдер табылмады',

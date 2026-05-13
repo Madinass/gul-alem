@@ -27,16 +27,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _onLoginPressed() async {
+    final t = context.t;
     final loginInput = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
     if (loginInput.isEmpty) {
-      _showSnackBar(context.t.loginRequired, Colors.redAccent);
+      _showSnackBar(t.loginRequired, Colors.redAccent);
       return;
     }
 
     if (password.length < 8) {
-      _showSnackBar(context.t.passwordTooShort, Colors.redAccent);
+      _showSnackBar(t.passwordTooShort, Colors.redAccent);
       return;
     }
 
@@ -50,14 +51,15 @@ class _LoginScreenState extends State<LoginScreen> {
         email: data['email'] ?? '',
         name: data['name'] ?? '',
       );
-      _showSnackBar(context.t.welcome, Colors.green);
       if (!mounted) return;
+      _showSnackBar(t.welcome, Colors.green);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
     } catch (e) {
-      _showSnackBar(context.t.loginFailed, Colors.redAccent);
+      if (!mounted) return;
+      _showSnackBar(t.loginFailed, Colors.redAccent);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
