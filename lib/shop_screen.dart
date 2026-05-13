@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
 import 'product.dart';
 import 'services/api_service.dart';
-import 'widgets/product_image.dart';
+import 'widgets/product_card.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -14,11 +15,13 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> {
   bool _loading = true;
   List<Product> products = [];
+  Set<String> _favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadFavorites();
   }
 
   Future<void> _loadProducts() async {
@@ -32,6 +35,59 @@ class _ShopScreenState extends State<ShopScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await ApiService.fetchFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds = favorites.map((item) => item.id).toSet();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFavorite(Product product) async {
+    final t = context.t;
+    final isFav = _favoriteIds.contains(product.id);
+    try {
+      if (isFav) {
+        await ApiService.removeFavorite(product.id);
+      } else {
+        await ApiService.addFavorite(product.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        if (isFav) {
+          _favoriteIds.remove(product.id);
+        } else {
+          _favoriteIds.add(product.id);
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToCart(Product product) async {
+    final t = context.t;
+    try {
+      await ApiService.addToCart(product.id, quantity: 1);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
     }
   }
 
@@ -104,131 +160,18 @@ class _ShopScreenState extends State<ShopScreen> {
                             crossAxisCount: 2,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
-                            childAspectRatio: 0.75,
+                            mainAxisExtent: 276,
                           ),
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
-                                blurRadius: 6,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: ProductImage(
-                                  product: product,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  errorWidget: const Icon(
-                                    Icons.local_florist,
-                                    size: 50,
-                                    color: Colors.pink,
-                                  ),
-                                ),
-                              ),
-
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(4.0),
-                                    child: Icon(
-                                      Icons.favorite_border,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              Align(
-                                alignment: Alignment.bottomCenter,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      Text(
-                                        t.productName(product),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Wrap(
-                                        alignment: WrapAlignment.center,
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        spacing: 8,
-                                        runSpacing: 4,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[200],
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              t.priceValue(product.price),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: product.inStock
-                                                  ? Colors.green
-                                                  : Colors.grey,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: SizedBox(
-                                              width: 40,
-                                              height: 40,
-                                              child: IconButton(
-                                                padding: EdgeInsets.zero,
-                                                onPressed: () {},
-                                                icon: const Icon(
-                                                  Icons.shopping_cart,
-                                                  color: Colors.white,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        final isFav = _favoriteIds.contains(product.id);
+                        return ProductCard(
+                          product: product,
+                          isFavorite: isFav,
+                          onTap: () => showAddToCartSheet(context, product),
+                          onFavoritePressed: () => _toggleFavorite(product),
+                          onAddToCartPressed: () => _addToCart(product),
                         );
                       },
                     ),

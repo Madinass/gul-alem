@@ -7,7 +7,7 @@ import 'custom_bouquet_screen.dart';
 import 'services/api_service.dart';
 import 'notification_screen.dart';
 import 'app_language.dart';
-import 'widgets/product_image.dart';
+import 'widgets/product_card.dart';
 
 class BasBetScreen extends StatefulWidget {
   const BasBetScreen({super.key});
@@ -495,94 +495,20 @@ class _BasBetScreenState extends State<BasBetScreen>
         crossAxisCount: 2,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        childAspectRatio: 0.78,
+        mainAxisExtent: 276,
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
-        return GestureDetector(
+        final isFav = _favoriteIds.contains(product.id);
+        return ProductCard(
+          product: product,
+          isFavorite: isFav,
           onTap: () => showAddToCartSheet(context, product),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: lightPink),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: ProductImage(
-                        product: product,
-                        fit: BoxFit.contain,
-                        errorWidget: Icon(
-                          Icons.image,
-                          color: lightPink,
-                          size: 50,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        context.t.productName(product),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.t.priceValue(product.price),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: darkPink,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => _addToCart(product),
-                      icon: Icon(Icons.add_circle, color: darkPink, size: 22),
-                    ),
-                  ],
-                ),
-                if (!product.inStock)
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        context.t.outOfStock,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          onAddToCartPressed: () => _addToCart(product),
+          onFavoritePressed: () => _toggleFavorite(product),
+          accentColor: darkPink,
+          borderColor: lightPink,
         );
       },
     );
@@ -655,7 +581,7 @@ class _BasBetScreenState extends State<BasBetScreen>
     }
 
     return SizedBox(
-      height: 280,
+      height: 282,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -663,102 +589,16 @@ class _BasBetScreenState extends State<BasBetScreen>
         itemBuilder: (context, index) {
           final product = products[index];
           final isFav = _favoriteIds.contains(product.id);
-          return GestureDetector(
+          return ProductCard(
+            product: product,
+            isFavorite: isFav,
+            width: 174,
+            margin: const EdgeInsets.only(right: 14),
             onTap: () => showAddToCartSheet(context, product),
-            child: Container(
-              width: 170,
-              margin: const EdgeInsets.only(right: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: lightPink),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: ProductImage(
-                          product: product,
-                          fit: BoxFit.contain,
-                          errorWidget: Icon(
-                            Icons.image,
-                            color: lightPink,
-                            size: 50,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          t.productName(product),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        t.priceValue(product.price),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: darkPink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => _addToCart(product),
-                        icon: Icon(Icons.add_circle, color: darkPink, size: 22),
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: IconButton(
-                      onPressed: () => _toggleFavorite(product),
-                      icon: Icon(
-                        isFav ? Icons.favorite : Icons.favorite_border,
-                        color: darkPink,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  if (!product.inStock)
-                    Positioned(
-                      bottom: 60,
-                      right: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          t.outOfStock,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            onAddToCartPressed: () => _addToCart(product),
+            onFavoritePressed: () => _toggleFavorite(product),
+            accentColor: darkPink,
+            borderColor: lightPink,
           );
         },
       ),

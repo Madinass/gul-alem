@@ -3,7 +3,7 @@ import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
 import 'product.dart';
 import 'services/api_service.dart';
-import 'widgets/product_image.dart';
+import 'widgets/product_card.dart';
 
 class CategoryDetailScreen extends StatefulWidget {
   final String categoryId;
@@ -109,7 +109,6 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.t;
     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
       appBar: AppBar(
@@ -141,110 +140,20 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 0.75,
+                          mainAxisExtent: 276,
                         ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];
                       final isFav = _favoriteIds.contains(product.id);
-                      return InkWell(
+                      return ProductCard(
+                        product: product,
+                        isFavorite: isFav,
                         onTap: () => showAddToCartSheet(context, product),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 6,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Stack(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: ProductImage(
-                                        product: product,
-                                        fit: BoxFit.contain,
-                                        width: double.infinity,
-                                        errorWidget: Icon(
-                                          Icons.local_florist,
-                                          size: 50,
-                                          color: darkPink,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Text(
-                                          t.productName(product),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          t.priceValue(product.price),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: darkPink),
-                                        ),
-                                        if (!product.inStock)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 4,
-                                            ),
-                                            child: Text(
-                                              t.outOfStock,
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                color: Colors.red,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        IconButton(
-                                          onPressed: () => _addToCart(product),
-                                          icon: Icon(
-                                            Icons.add_circle,
-                                            color: darkPink,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: IconButton(
-                                  onPressed: () => _toggleFavorite(product),
-                                  icon: Icon(
-                                    isFav
-                                        ? Icons.favorite
-                                        : Icons.favorite_border,
-                                    color: darkPink,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        onAddToCartPressed: () => _addToCart(product),
+                        onFavoritePressed: () => _toggleFavorite(product),
+                        accentColor: darkPink,
+                        borderColor: const Color(0xFFFFE6EB),
                       );
                     },
                   ),

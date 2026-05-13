@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
+import 'product.dart';
 import 'services/api_service.dart';
+import 'widgets/product_card.dart';
 
 class ChatSession {
   final String id;
@@ -31,8 +34,14 @@ class ChatMessage {
   final String role;
   final String message;
   final DateTime? createdAt;
+  final List<Product> products;
 
-  ChatMessage({required this.role, required this.message, this.createdAt});
+  ChatMessage({
+    required this.role,
+    required this.message,
+    this.createdAt,
+    this.products = const [],
+  });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
@@ -41,7 +50,21 @@ class ChatMessage {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'])
           : null,
+      products: productsFromJson(json['products']),
     );
+  }
+
+  static List<Product> productsFromJson(dynamic value) {
+    if (value is! List) return const [];
+    final products = <Product>[];
+    for (final item in value) {
+      if (item is Map<String, dynamic>) {
+        products.add(Product.fromJson(item));
+      } else if (item is Map) {
+        products.add(Product.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+    return products;
   }
 }
 
@@ -64,11 +87,13 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoadingSessions = false;
   bool _isLoadingMessages = false;
   bool _isSending = false;
+  Set<String> _favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadSessions();
+    _loadFavorites();
   }
 
   @override
@@ -89,6 +114,59 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
     } finally {
       if (mounted) setState(() => _isLoadingSessions = false);
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await ApiService.fetchFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds = favorites.map((item) => item.id).toSet();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFavorite(Product product) async {
+    final t = context.t;
+    final isFav = _favoriteIds.contains(product.id);
+    try {
+      if (isFav) {
+        await ApiService.removeFavorite(product.id);
+      } else {
+        await ApiService.addFavorite(product.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        if (isFav) {
+          _favoriteIds.remove(product.id);
+        } else {
+          _favoriteIds.add(product.id);
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToCart(Product product) async {
+    final t = context.t;
+    try {
+      await ApiService.addToCart(product.id, quantity: 1);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
     }
   }
 
@@ -153,9 +231,14 @@ class _ChatScreenState extends State<ChatScreen> {
         sessionId: sessionId,
       );
       if (!mounted) return;
+      final suggestedProducts = ChatMessage.productsFromJson(reply['products']);
       setState(() {
         _messages.add(
-          ChatMessage(role: 'assistant', message: reply['message'] ?? ''),
+          ChatMessage(
+            role: 'assistant',
+            message: reply['message'] ?? '',
+            products: suggestedProducts,
+          ),
         );
       });
       await _loadSessions();
@@ -322,8 +405,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final isUser = message.role == 'user';
-                    return _buildChatBubble(message.message, isUser);
+                    return _buildChatMessage(message);
                   },
                 ),
         ),
@@ -332,10 +414,24 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: LinearProgressIndicator(
               color: Colors.pink,
-              backgroundColor: Colors.pink.withOpacity(0.2),
+              backgroundColor: Colors.pink.withValues(alpha: 0.2),
             ),
           ),
         _buildInputArea(),
+      ],
+    );
+  }
+
+  Widget _buildChatMessage(ChatMessage message) {
+    final isUser = message.role == 'user';
+    return Column(
+      crossAxisAlignment: isUser
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        _buildChatBubble(message.message, isUser),
+        if (!isUser && message.products.isNotEmpty)
+          _buildProductSuggestions(message.products),
       ],
     );
   }
@@ -366,13 +462,40 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget _buildProductSuggestions(List<Product> products) {
+    return SizedBox(
+      height: 286,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(top: 4, right: 4, bottom: 10),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final product = products[index];
+          final isFav = _favoriteIds.contains(product.id);
+          return ProductCard(
+            product: product,
+            isFavorite: isFav,
+            width: 174,
+            margin: const EdgeInsets.only(right: 12),
+            onTap: () => showAddToCartSheet(context, product),
+            onAddToCartPressed: () => _addToCart(product),
+            onFavoritePressed: () => _toggleFavorite(product),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildInputArea() {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: SafeArea(

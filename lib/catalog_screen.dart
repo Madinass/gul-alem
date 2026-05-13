@@ -8,7 +8,7 @@ import 'filter_option_screen.dart';
 import 'filter_options.dart';
 import 'product.dart';
 import 'services/api_service.dart';
-import 'widgets/product_image.dart';
+import 'widgets/product_card.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -25,6 +25,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   String? _selectedOccasionId;
   String? _selectedRecipientId;
   List<Product> _filteredProducts = [];
+  Set<String> _favoriteIds = {};
   bool _loadingFilteredProducts = false;
   bool _loading = true;
 
@@ -32,6 +33,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   void initState() {
     super.initState();
     _loadCategories();
+    _loadFavorites();
   }
 
   Future<void> _loadCategories() async {
@@ -72,6 +74,59 @@ class _CatalogScreenState extends State<CatalogScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingFilteredProducts = false);
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await ApiService.fetchFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds = favorites.map((item) => item.id).toSet();
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFavorite(Product product) async {
+    final t = context.t;
+    final isFav = _favoriteIds.contains(product.id);
+    try {
+      if (isFav) {
+        await ApiService.removeFavorite(product.id);
+      } else {
+        await ApiService.addFavorite(product.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        if (isFav) {
+          _favoriteIds.remove(product.id);
+        } else {
+          _favoriteIds.add(product.id);
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToCart(Product product) async {
+    final t = context.t;
+    try {
+      await ApiService.addToCart(product.id, quantity: 1);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
     }
   }
 
@@ -199,71 +254,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
                               crossAxisCount: 2,
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
-                              childAspectRatio: 0.75,
+                              mainAxisExtent: 276,
                             ),
                         itemCount: _filteredProducts.length,
                         itemBuilder: (context, index) {
                           final product = _filteredProducts[index];
-                          return InkWell(
+                          final isFav = _favoriteIds.contains(product.id);
+                          return ProductCard(
+                            product: product,
+                            isFavorite: isFav,
                             onTap: () => showAddToCartSheet(context, product),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.06),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: ProductImage(
-                                        product: product,
-                                        fit: BoxFit.contain,
-                                        width: double.infinity,
-                                        errorWidget: Icon(
-                                          Icons.local_florist,
-                                          size: 50,
-                                          color: darkPink,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Text(
-                                          t.productName(product),
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          t.priceValue(product.price),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: darkPink),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            onAddToCartPressed: () => _addToCart(product),
+                            onFavoritePressed: () => _toggleFavorite(product),
+                            accentColor: darkPink,
+                            borderColor: navBarPink,
                           );
                         },
                       ),
