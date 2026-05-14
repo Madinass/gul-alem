@@ -137,31 +137,20 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
           .where((entry) => entry.value > 0)
           .map((entry) => {'itemId': entry.key, 'quantity': entry.value})
           .toList();
-      await ApiService.createCustomBouquetOrder(
+      await ApiService.addCustomBouquetToCart(
         items: payload,
         description: _descriptionController.text.trim(),
       );
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(t.success),
-          content: Text(t.customBouquetCreated),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(t.close),
-            ),
-          ],
-        ),
-      );
-      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
       Navigator.pop(context);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(t.customBouquetFailed)));
+      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -944,9 +933,13 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                : const Icon(
+                    Icons.shopping_cart_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
             label: Text(
-              t.submitCustomBouquet,
+              t.addToCart,
               style: const TextStyle(color: Colors.white),
             ),
           ),

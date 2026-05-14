@@ -31,7 +31,8 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final canAddToCart = product.inStock && onAddToCartPressed != null;
+    final productAvailable = product.inStock && product.stockCount > 0;
+    final canAddToCart = productAvailable && onAddToCartPressed != null;
 
     return Container(
       width: width,
@@ -92,16 +93,6 @@ class ProductCard extends StatelessWidget {
                             onPressed: onFavoritePressed,
                           ),
                         ),
-                        Positioned(
-                          left: 6,
-                          bottom: 6,
-                          child: _StockBadge(
-                            label: product.inStock ? t.inStock : t.outOfStock,
-                            color: product.inStock
-                                ? const Color(0xFF1F9D55)
-                                : Colors.black54,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -151,7 +142,7 @@ class ProductCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              product.inStock ? t.addToCart : t.outOfStock,
+                              productAvailable ? t.addToCart : t.outOfStock,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -197,7 +188,8 @@ class ProductListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final canAddToCart = product.inStock && onAddToCartPressed != null;
+    final productAvailable = product.inStock && product.stockCount > 0;
+    final canAddToCart = productAvailable && onAddToCartPressed != null;
 
     return Material(
       color: Colors.white,
@@ -260,17 +252,6 @@ class ProductListCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      product.inStock ? t.inStock : t.outOfStock,
-                      style: TextStyle(
-                        color: product.inStock
-                            ? const Color(0xFF1F9D55)
-                            : Colors.black45,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -326,35 +307,6 @@ class _RoundIconButton extends StatelessWidget {
         constraints: const BoxConstraints.tightFor(width: 34, height: 34),
         onPressed: onPressed,
         icon: Icon(icon, color: color, size: 20),
-      ),
-    );
-  }
-}
-
-class _StockBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StockBadge({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 112),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }

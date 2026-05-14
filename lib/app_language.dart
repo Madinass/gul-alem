@@ -185,33 +185,33 @@ class AppText {
     en: 'Search results',
   );
   String get searchByPhoto =>
-      pick(kz: 'Фото арқылы іздеу', ru: 'Поиск по фото', en: 'Search by photo');
+      pick(kz: 'Суретпен іздеу', ru: 'Поиск по фото', en: 'Search by photo');
   String get choosePhotoSource =>
-      pick(kz: 'Фотоны таңдаңыз', ru: 'Выберите фото', en: 'Choose photo');
+      pick(kz: 'Суретті таңдаңыз', ru: 'Выберите фото', en: 'Choose photo');
   String get camera => pick(kz: 'Камера', ru: 'Камера', en: 'Camera');
   String get gallery => pick(kz: 'Галерея', ru: 'Галерея', en: 'Gallery');
   String get photoSearchResults => pick(
-    kz: 'Фото бойынша табылғандар',
+    kz: 'Сурет бойынша табылған өнімдер',
     ru: 'Найдено по фото',
     en: 'Found by photo',
   );
   String get photoSearchNoResults => pick(
-    kz: 'Фото бойынша сәйкес өнім табылмады',
+    kz: 'Суретке сәйкес өнім табылмады',
     ru: 'По фото ничего не найдено',
     en: 'No photo matches found',
   );
   String get photoSearchFailed => pick(
-    kz: 'Фото бойынша іздеу сәтсіз',
+    kz: 'Суретпен іздеу орындалмады',
     ru: 'Не удалось выполнить поиск по фото',
     en: 'Photo search failed',
   );
   String get photoSearchLoading => pick(
-    kz: 'Фото талданып жатыр...',
+    kz: 'Сурет талданып жатыр...',
     ru: 'Анализируем фото...',
     en: 'Analyzing photo...',
   );
   String get clearPhotoSearch => pick(
-    kz: 'Фото іздеуді тазалау',
+    kz: 'Суретпен іздеуді тазалау',
     ru: 'Очистить поиск по фото',
     en: 'Clear photo search',
   );

@@ -42,19 +42,19 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _updateQuantity(CartItem item, int quantity) async {
     final t = context.t;
     try {
-      await ApiService.updateCartItem(item.product.id, quantity: quantity);
+      await ApiService.updateCartItem(
+        item.id,
+        quantity: quantity,
+        itemType: item.itemType,
+      );
       if (!mounted) return;
       setState(() {
         if (quantity <= 0) {
-          _items.removeWhere(
-            (element) => element.product.id == item.product.id,
-          );
+          _items.removeWhere((element) => element.id == item.id);
         } else {
-          final index = _items.indexWhere(
-            (element) => element.product.id == item.product.id,
-          );
+          final index = _items.indexWhere((element) => element.id == item.id);
           if (index != -1) {
-            _items[index] = CartItem(product: item.product, quantity: quantity);
+            _items[index] = item.copyWith(quantity: quantity);
           }
         }
       });
@@ -101,7 +101,7 @@ class _CartScreenState extends State<CartScreen> {
                           border: Border.all(color: const Color(0xFFFFE6EB)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 6,
                               offset: const Offset(0, 3),
                             ),
@@ -133,11 +133,26 @@ class _CartScreenState extends State<CartScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    t.productName(item.product),
+                                    item.isCustom
+                                        ? t.customBouquet
+                                        : t.productName(item.product),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  if (item.isCustom &&
+                                      item.description.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item.description,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 6),
                                   Row(
                                     children: [
@@ -193,7 +208,7 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withValues(alpha: 0.06),
                         blurRadius: 8,
                         offset: const Offset(0, -2),
                       ),

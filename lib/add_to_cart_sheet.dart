@@ -19,6 +19,10 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
       return StatefulBuilder(
         builder: (context, setState) {
           final t = context.t;
+          final canAddToCart = product.inStock && product.stockCount > 0;
+          final stockLabel = canAddToCart
+              ? t.availableCount(product.stockCount)
+              : t.outOfStock;
           final total = product.price * quantity;
           return Padding(
             padding: EdgeInsets.only(
@@ -86,6 +90,33 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                             t.priceValue(product.price),
                             style: TextStyle(color: darkPink),
                           ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                canAddToCart
+                                    ? Icons.check_circle_outline
+                                    : Icons.info_outline,
+                                size: 16,
+                                color: canAddToCart ? darkPink : Colors.black45,
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  stockLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: canAddToCart
+                                        ? Colors.black54
+                                        : Colors.black45,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -109,7 +140,10 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                         ),
                         Text('$quantity', style: const TextStyle(fontSize: 16)),
                         IconButton(
-                          onPressed: () => setState(() => quantity += 1),
+                          onPressed:
+                              canAddToCart && quantity < product.stockCount
+                              ? () => setState(() => quantity += 1)
+                              : null,
                           icon: const Icon(Icons.add_circle_outline),
                         ),
                       ],
@@ -139,31 +173,35 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: darkPink,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      disabledForegroundColor: Colors.grey.shade600,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () async {
-                      try {
-                        await ApiService.addToCart(
-                          product.id,
-                          quantity: quantity,
-                        );
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(t.addedToCart)),
-                          );
-                        }
-                      } catch (_) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(t.addToCartFailed)),
-                          );
-                        }
-                      }
-                    },
+                    onPressed: canAddToCart
+                        ? () async {
+                            try {
+                              await ApiService.addToCart(
+                                product.id,
+                                quantity: quantity,
+                              );
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(t.addedToCart)),
+                                );
+                              }
+                            } catch (_) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(t.addToCartFailed)),
+                                );
+                              }
+                            }
+                          }
+                        : null,
                     child: Text(
                       t.confirm,
                       style: const TextStyle(color: Colors.white),

@@ -21,10 +21,18 @@ class AuthException implements Exception {
 
 class ApiService {
   static final String baseUrl = backend_config.baseUrl;
+  static const String _deliveryAddressPrefsPrefix =
+      'remembered_delivery_address';
 
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
+  }
+
+  static String _deliveryAddressPrefsKey(SharedPreferences prefs) {
+    final email = prefs.getString('auth_email') ?? '';
+    if (email.isEmpty) return _deliveryAddressPrefsPrefix;
+    return '$_deliveryAddressPrefsPrefix:$email';
   }
 
   static Future<String> _requireToken() async {
@@ -62,6 +70,32 @@ class ApiService {
     await prefs.remove('auth_role');
     await prefs.remove('auth_email');
     await prefs.remove('auth_name');
+  }
+
+  static Future<void> rememberDeliveryAddress(String address) async {
+    final normalized = address.trim();
+    if (normalized.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_deliveryAddressPrefsKey(prefs), normalized);
+  }
+
+  static Future<String> fetchRememberedDeliveryAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_deliveryAddressPrefsKey(prefs))?.trim();
+    if (saved != null && saved.isNotEmpty) return saved;
+
+    try {
+      final orders = await fetchMyOrders();
+      for (final order in orders) {
+        final address = order.deliveryAddress?.trim() ?? '';
+        if (order.deliveryMethod == 'courier' && address.isNotEmpty) {
+          await prefs.setString(_deliveryAddressPrefsKey(prefs), address);
+          return address;
+        }
+      }
+    } catch (_) {}
+
+    return '';
   }
 
   static Future<bool> hasValidSession() async {
@@ -683,28 +717,58 @@ class ApiService {
     }
   }
 
-  static Future<void> updateCartItem(
-    String productId, {
-    required int quantity,
+  static Future<void> addCustomBouquetToCart({
+    required List<Map<String, dynamic>> items,
+    required String description,
+    int quantity = 1,
   }) async {
     final token = await _requireToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/cart/$productId'),
+    final response = await http.post(
+      Uri.parse('$baseUrl/cart/custom'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'quantity': quantity}),
+      body: jsonEncode({
+        'items': items,
+        'description': description,
+        'quantity': quantity,
+      }),
+    );
+    if (!await _isSuccess(response)) {
+      throw Exception('Could not add custom bouquet to cart');
+    }
+  }
+
+  static Future<void> updateCartItem(
+    String itemId, {
+    required int quantity,
+    String itemType = 'product',
+  }) async {
+    final token = await _requireToken();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/cart/$itemId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'quantity': quantity, 'itemType': itemType}),
     );
     if (!await _isSuccess(response)) {
       throw Exception('Себетті жаңарту сәтсіз');
     }
   }
 
-  static Future<void> removeFromCart(String productId) async {
+  static Future<void> removeFromCart(
+    String itemId, {
+    String itemType = 'product',
+  }) async {
     final token = await _requireToken();
+    final uri = Uri.parse(
+      '$baseUrl/cart/$itemId',
+    ).replace(queryParameters: {'itemType': itemType});
     final response = await http.delete(
-      Uri.parse('$baseUrl/cart/$productId'),
+      uri,
       headers: {'Authorization': 'Bearer $token'},
     );
     if (!await _isSuccess(response)) {
@@ -733,7 +797,9 @@ class ApiService {
     final token = await _requireToken();
     final payload = items
         .map(
-          (item) => {'productId': item.product.id, 'quantity': item.quantity},
+          (item) => item.isCustom
+              ? {'cartItemId': item.id, 'quantity': item.quantity}
+              : {'productId': item.product.id, 'quantity': item.quantity},
         )
         .toList();
     final response = await http.post(

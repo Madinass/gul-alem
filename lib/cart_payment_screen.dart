@@ -54,6 +54,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
   @override
   void initState() {
     super.initState();
+    _loadRememberedDeliveryAddress();
     _loadMethods();
     _loadUserLocation();
   }
@@ -79,6 +80,16 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loadRememberedDeliveryAddress() async {
+    final address = await ApiService.fetchRememberedDeliveryAddress();
+    if (!mounted ||
+        address.isEmpty ||
+        _deliveryAddressController.text.trim().isNotEmpty) {
+      return;
+    }
+    _deliveryAddressController.text = address;
   }
 
   Future<void> _addMethod() async {
@@ -168,6 +179,9 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
             ? deliveryAddress
             : null,
       );
+      if (_deliveryMethod == DeliveryMethod.courier) {
+        await ApiService.rememberDeliveryAddress(deliveryAddress);
+      }
       await ApiService.createNotification(
         title: t.paymentSuccessTitle,
         message: t.orderAccepted,
