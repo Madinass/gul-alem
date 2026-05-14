@@ -123,7 +123,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              item.title,
+                              t.notificationText(item.title),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -138,7 +138,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       if (item.message.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
-                          item.message,
+                          t.notificationText(item.message),
                           style: const TextStyle(color: Colors.black54),
                         ),
                       ],

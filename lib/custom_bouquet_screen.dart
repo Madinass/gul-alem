@@ -762,7 +762,7 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  t.customItemName(item.imagePath, item.name),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

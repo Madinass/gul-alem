@@ -184,7 +184,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     TextButton.icon(
                       onPressed: saving ? null : pickImage,
                       icon: const Icon(Icons.image_outlined),
-                      label: const Text('Choose image'),
+                      label: Text(t.chooseImage),
                     ),
                     TextField(
                       controller: nameController,

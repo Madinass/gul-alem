@@ -509,16 +509,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 6),
                   Text(
                     order.deliveryMethod == 'courier'
-                        ? 'Delivery method: Courier delivery'
-                        : 'Delivery method: Pickup from store',
+                        ? t.deliveryMethodWith(t.courierDelivery)
+                        : t.deliveryMethodWith(t.pickupFromStore),
                   ),
                   if (order.deliveryMethod == 'pickup' &&
                       order.pickupStore != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       [
-                            order.pickupStore?['name']?.toString(),
-                            order.pickupStore?['address']?.toString(),
+                            t.pickupStoreName(
+                              order.pickupStore?['id'],
+                              order.pickupStore?['name'],
+                            ),
+                            t.pickupStoreAddress(
+                              order.pickupStore?['id'],
+                              order.pickupStore?['address'],
+                            ),
                           ]
                           .whereType<String>()
                           .where((value) => value.isNotEmpty)
@@ -530,7 +536,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       (order.deliveryAddress ?? '').isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Delivery address: ${order.deliveryAddress}',
+                      t.deliveryAddressWith(order.deliveryAddress ?? ''),
                       style: const TextStyle(color: Colors.black54),
                     ),
                   ],

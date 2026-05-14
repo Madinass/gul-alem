@@ -155,7 +155,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                     TextButton.icon(
                       onPressed: saving ? null : pickImage,
                       icon: const Icon(Icons.image_outlined),
-                      label: const Text('Choose image'),
+                      label: Text(t.chooseImage),
                     ),
                     TextField(
                       controller: nameController,
@@ -183,7 +183,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                       controller: orderController,
                       enabled: !saving,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Order'),
+                      decoration: InputDecoration(labelText: t.sortOrder),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
@@ -320,7 +320,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                           : Icon(_iconForGroup(item.group), color: darkPink),
                     ),
                     title: Text(
-                      item.name,
+                      t.customItemName(item.imagePath, item.name),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(

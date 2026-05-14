@@ -527,7 +527,7 @@ class ApiService {
       headers: {'Authorization': 'Bearer $token'},
     );
     if (!await _isSuccess(response)) {
-      throw Exception('Ð§Ð°Ñ‚Ñ‚Ñ‹ Ó©ÑˆÑ–Ñ€Ñƒ ÑÓ™Ñ‚ÑÑ–Ð·');
+      throw Exception('Чатты өшіру сәтсіз');
     }
   }
 

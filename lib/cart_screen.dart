@@ -129,7 +129,7 @@ class _CartScreenState extends State<CartScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 3),
             child: Text(
-              '${t.customGroupLabel(group)}: ${grouped[group]!.map(_formatCustomDetail).join(', ')}',
+              '${t.customGroupLabel(group)}: ${grouped[group]!.map((item) => _formatCustomDetail(t, item)).join(', ')}',
               style: const TextStyle(color: Colors.black54, fontSize: 12),
             ),
           ),
@@ -137,8 +137,11 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  String _formatCustomDetail(CustomCartItem item) {
-    return '${item.quantity} x ${item.name}';
+  String _formatCustomDetail(AppText t, CustomCartItem item) {
+    return t.customItemQuantity(
+      item.quantity,
+      t.customItemName(item.imagePath, item.name),
+    );
   }
 
   @override

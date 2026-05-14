@@ -141,17 +141,13 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
 
     if (_deliveryMethod == DeliveryMethod.pickup &&
         _selectedPickupStore == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please select a pickup store.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(t.selectPickupStore)));
       return;
     }
 
     final deliveryAddress = _deliveryAddressController.text.trim();
     if (_deliveryMethod == DeliveryMethod.courier && deliveryAddress.isEmpty) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please enter the delivery address.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(t.enterDeliveryAddress)));
       return;
     }
 
@@ -237,11 +233,11 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
     return stores;
   }
 
-  String _distanceLabel(PickupStore store) {
+  String _distanceLabel(AppText t, PickupStore store) {
     final distance = _distanceTo(store);
     if (distance == null) return '';
-    if (distance < 1000) return '${distance.round()} m';
-    return '${(distance / 1000).toStringAsFixed(1)} km';
+    if (distance < 1000) return t.distanceMeters(distance);
+    return t.distanceKilometers(distance / 1000);
   }
 
   @override
@@ -252,7 +248,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Checkout', style: TextStyle(color: Colors.black)),
+        title: Text(t.checkout, style: const TextStyle(color: Colors.black)),
         centerTitle: true,
       ),
       body: _loading
@@ -265,7 +261,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      _buildDeliverySection(),
+                      _buildDeliverySection(t),
                       const SizedBox(height: 16),
                       _buildPaymentSection(t),
                     ],
@@ -277,34 +273,34 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
     );
   }
 
-  Widget _buildDeliverySection() {
+  Widget _buildDeliverySection(AppText t) {
     return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Delivery method',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            t.deliveryMethod,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           _deliveryOptionCard(
             method: DeliveryMethod.pickup,
-            title: 'Pickup from store',
-            priceLabel: 'Free',
+            title: t.pickupFromStore,
+            priceLabel: t.free,
             icon: Icons.storefront,
           ),
           const SizedBox(height: 10),
           _deliveryOptionCard(
             method: DeliveryMethod.courier,
-            title: 'Courier delivery',
-            priceLabel: '1000 KZT',
+            title: t.courierDelivery,
+            priceLabel: t.priceValue(_courierDeliveryPrice),
             icon: Icons.local_shipping_outlined,
           ),
           const SizedBox(height: 16),
           if (_deliveryMethod == DeliveryMethod.pickup)
-            _buildPickupSection()
+            _buildPickupSection(t)
           else
-            _buildCourierSection(),
+            _buildCourierSection(t),
         ],
       ),
     );
@@ -361,13 +357,13 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
     );
   }
 
-  Widget _buildPickupSection() {
+  Widget _buildPickupSection(AppText t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Select a store',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          t.selectStore,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         ClipRRect(
@@ -400,7 +396,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
             padding: EdgeInsets.only(bottom: 10),
             child: LinearProgressIndicator(minHeight: 2),
           ),
-        ..._sortedPickupStores().map(_pickupStoreTile),
+        ..._sortedPickupStores().map((store) => _pickupStoreTile(t, store)),
       ],
     );
   }
@@ -444,9 +440,9 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
     return markers;
   }
 
-  Widget _pickupStoreTile(PickupStore store) {
+  Widget _pickupStoreTile(AppText t, PickupStore store) {
     final selected = _selectedPickupStore?.id == store.id;
-    final distance = _distanceLabel(store);
+    final distance = _distanceLabel(t, store);
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -471,12 +467,12 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    store.name,
+                    t.pickupStoreName(store.id, store.name),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    store.address,
+                    t.pickupStoreAddress(store.id, store.address),
                     style: const TextStyle(color: Colors.black54),
                   ),
                   if (distance.isNotEmpty) ...[
@@ -499,14 +495,14 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
     );
   }
 
-  Widget _buildCourierSection() {
+  Widget _buildCourierSection(AppText t) {
     return TextField(
       controller: _deliveryAddressController,
       minLines: 1,
       maxLines: 3,
       textInputAction: TextInputAction.done,
       decoration: InputDecoration(
-        labelText: 'Delivery address',
+        labelText: t.deliveryAddress,
         prefixIcon: const Icon(Icons.location_on_outlined),
         filled: true,
         fillColor: const Color(0xFFFFF6F8),
@@ -561,13 +557,13 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
               ],
             )
           else
-            ..._methods.map(_paymentMethodTile),
+            ..._methods.map((method) => _paymentMethodTile(t, method)),
         ],
       ),
     );
   }
 
-  Widget _paymentMethodTile(dynamic method) {
+  Widget _paymentMethodTile(AppText t, dynamic method) {
     final id = method['id'];
     final last4 = method['last4'] ?? '';
     final selected = _selectedId == id;
@@ -596,7 +592,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
             const SizedBox(width: 12),
             const Icon(Icons.credit_card, color: Colors.black54),
             const SizedBox(width: 12),
-            Expanded(child: Text('**** **** **** $last4')),
+            Expanded(child: Text(t.paymentCardEnding(last4))),
           ],
         ),
       ),
@@ -625,15 +621,15 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _summaryRow('Subtotal', t.priceValue(widget.total)),
+            _summaryRow(t.subtotal, t.priceValue(widget.total)),
             const SizedBox(height: 6),
             _summaryRow(
-              'Delivery fee',
-              _deliveryPrice == 0 ? 'Free' : t.priceValue(_deliveryPrice),
+              t.deliveryFee,
+              _deliveryPrice == 0 ? t.free : t.priceValue(_deliveryPrice),
             ),
             const Divider(height: 18),
             _summaryRow(
-              'Total',
+              t.totalAmount,
               t.priceValue(_orderTotal),
               valueStyle: TextStyle(
                 fontSize: 20,
@@ -662,9 +658,9 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Place order',
-                        style: TextStyle(color: Colors.white),
+                    : Text(
+                        t.placeOrder,
+                        style: const TextStyle(color: Colors.white),
                       ),
               ),
             ),

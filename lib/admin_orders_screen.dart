@@ -135,16 +135,22 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                         const SizedBox(height: 6),
                         Text(
                           deliveryMethod == 'courier'
-                              ? 'Delivery method: Courier delivery'
-                              : 'Delivery method: Pickup from store',
+                              ? t.deliveryMethodWith(t.courierDelivery)
+                              : t.deliveryMethodWith(t.pickupFromStore),
                         ),
                         if (deliveryMethod == 'pickup' &&
                             pickupStore != null) ...[
                           const SizedBox(height: 4),
                           Text(
                             [
-                                  pickupStore['name']?.toString(),
-                                  pickupStore['address']?.toString(),
+                                  t.pickupStoreName(
+                                    pickupStore['id'],
+                                    pickupStore['name'],
+                                  ),
+                                  t.pickupStoreAddress(
+                                    pickupStore['id'],
+                                    pickupStore['address'],
+                                  ),
                                 ]
                                 .whereType<String>()
                                 .where((value) => value.isNotEmpty)
@@ -156,12 +162,12 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                             deliveryAddress.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Delivery address: $deliveryAddress',
+                            t.deliveryAddressWith(deliveryAddress),
                             style: const TextStyle(color: Colors.black54),
                           ),
                         ],
                         const SizedBox(height: 4),
-                        Text('Delivery fee: ${t.priceValue(deliveryPrice)}'),
+                        Text(t.deliveryFeeWith(t.priceValue(deliveryPrice))),
                         const SizedBox(height: 6),
                         Text(t.totalWith(t.priceValue(total))),
                         const SizedBox(height: 6),

@@ -405,6 +405,47 @@ class AppText {
     ru: 'Оплата не прошла',
     en: 'Payment failed',
   );
+  String get checkout =>
+      pick(kz: 'Тапсырысты рәсімдеу', ru: 'Оформление заказа', en: 'Checkout');
+  String get deliveryMethod =>
+      pick(kz: 'Жеткізу әдісі', ru: 'Способ доставки', en: 'Delivery method');
+  String get pickupFromStore => pick(
+    kz: 'Дүкеннен алу',
+    ru: 'Самовывоз из магазина',
+    en: 'Pickup from store',
+  );
+  String get courierDelivery => pick(
+    kz: 'Курьермен жеткізу',
+    ru: 'Курьерская доставка',
+    en: 'Courier delivery',
+  );
+  String get free => pick(kz: 'Тегін', ru: 'Бесплатно', en: 'Free');
+  String get selectStore => pick(
+    kz: 'Дүкенді таңдаңыз',
+    ru: 'Выберите магазин',
+    en: 'Select a store',
+  );
+  String get selectPickupStore => pick(
+    kz: 'Алып кету дүкенін таңдаңыз.',
+    ru: 'Выберите магазин для самовывоза.',
+    en: 'Please select a pickup store.',
+  );
+  String get enterDeliveryAddress => pick(
+    kz: 'Жеткізу мекенжайын енгізіңіз.',
+    ru: 'Введите адрес доставки.',
+    en: 'Please enter the delivery address.',
+  );
+  String get deliveryAddress => pick(
+    kz: 'Жеткізу мекенжайы',
+    ru: 'Адрес доставки',
+    en: 'Delivery address',
+  );
+  String get subtotal =>
+      pick(kz: 'Аралық сома', ru: 'Промежуточный итог', en: 'Subtotal');
+  String get deliveryFee =>
+      pick(kz: 'Жеткізу ақысы', ru: 'Стоимость доставки', en: 'Delivery fee');
+  String get placeOrder =>
+      pick(kz: 'Тапсырыс беру', ru: 'Оформить заказ', en: 'Place order');
   String get savePaymentMethodFailed => pick(
     kz: 'Төлем әдісін сақтау сәтсіз',
     ru: 'Не удалось сохранить способ оплаты',
@@ -511,12 +552,15 @@ class AppText {
   String get price => pick(kz: 'Бағасы', ru: 'Цена', en: 'Price');
   String get imagePath =>
       pick(kz: 'Сурет жолы', ru: 'Путь к изображению', en: 'Image path');
+  String get chooseImage =>
+      pick(kz: 'Сурет таңдау', ru: 'Выбрать изображение', en: 'Choose image');
   String get flowerType =>
       pick(kz: 'Гүл түрі', ru: 'Тип цветка', en: 'Flower type');
   String get stockCount =>
       pick(kz: 'Қойма саны', ru: 'Количество на складе', en: 'Stock count');
   String get category => pick(kz: 'Санат', ru: 'Категория', en: 'Category');
   String get popular => pick(kz: 'Танымал', ru: 'Популярный', en: 'Popular');
+  String get sortOrder => pick(kz: 'Реті', ru: 'Порядок', en: 'Order');
   String get customItems => pick(
     kz: 'Жеке букет бөліктері',
     ru: 'Детали своего букета',
@@ -771,7 +815,8 @@ class AppText {
     en: 'This flower is a symbol of tenderness and beauty. A perfect choice for any celebration or as a gift for someone close.',
   );
 
-  String errorWith(Object errorValue) => '$error: $errorValue';
+  String errorWith(Object errorValue) =>
+      '$error: ${localizedErrorMessage(errorValue)}';
   String roleValue(String roleValue) => '$role: $roleValue';
   String orderNumber(Object id) =>
       pick(kz: 'Тапсырыс №$id', ru: 'Заказ №$id', en: 'Order #$id');
@@ -804,7 +849,102 @@ class AppText {
     en: '$productName added to cart!',
   );
   String serverConnectionErrorWith(Object errorValue) =>
-      '$serverConnectionError: $errorValue';
+      '$serverConnectionError: ${localizedErrorMessage(errorValue)}';
+
+  String deliveryMethodLabel(String value) {
+    switch (value) {
+      case 'pickup':
+        return pickupFromStore;
+      case 'courier':
+        return courierDelivery;
+      default:
+        return value;
+    }
+  }
+
+  String deliveryMethodWith(String value) => pick(
+    kz: '$deliveryMethod: $value',
+    ru: '$deliveryMethod: $value',
+    en: '$deliveryMethod: $value',
+  );
+
+  String deliveryAddressWith(String value) => pick(
+    kz: '$deliveryAddress: $value',
+    ru: '$deliveryAddress: $value',
+    en: '$deliveryAddress: $value',
+  );
+
+  String deliveryFeeWith(String amount) => pick(
+    kz: '$deliveryFee: $amount',
+    ru: '$deliveryFee: $amount',
+    en: '$deliveryFee: $amount',
+  );
+
+  String paymentCardEnding(Object last4) => pick(
+    kz: '**** **** **** $last4',
+    ru: '**** **** **** $last4',
+    en: '**** **** **** $last4',
+  );
+
+  String distanceMeters(num value) => pick(
+    kz: '${value.round()} м',
+    ru: '${value.round()} м',
+    en: '${value.round()} m',
+  );
+
+  String distanceKilometers(num value) {
+    final formatted = value.toStringAsFixed(1);
+    return pick(kz: '$formatted км', ru: '$formatted км', en: '$formatted km');
+  }
+
+  String customItemName(String imagePath, Object? name) {
+    final map = _customItemNames[imagePath];
+    if (map != null) return pick(kz: map.kz, ru: map.ru, en: map.en);
+    return customItemNameText(name);
+  }
+
+  String customItemNameText(Object? name) {
+    final value = name?.toString() ?? '';
+    return _translateLocaleValue(value, _customItemNames.values);
+  }
+
+  String customItemQuantity(int quantity, String name) => pick(
+    kz: '$name - $quantity дана',
+    ru: '$name - $quantity шт.',
+    en: '$quantity x $name',
+  );
+
+  String pickupStoreName(Object? id, Object? fallback) {
+    final key = id?.toString() ?? '';
+    final map = _pickupStoreNames[key];
+    if (map != null) return pick(kz: map.kz, ru: map.ru, en: map.en);
+    return fallback?.toString() ?? '';
+  }
+
+  String pickupStoreAddress(Object? id, Object? fallback) {
+    final key = id?.toString() ?? '';
+    final map = _pickupStoreAddresses[key];
+    if (map != null) return pick(kz: map.kz, ru: map.ru, en: map.en);
+    return fallback?.toString() ?? '';
+  }
+
+  String notificationText(String value) =>
+      _translateLocaleValue(value, _notificationTexts);
+
+  String localizedErrorMessage(Object errorValue) {
+    final raw = errorValue.toString();
+    final message = raw.startsWith('Exception: ')
+        ? raw.substring('Exception: '.length)
+        : raw;
+    if (message.startsWith('Image upload failed')) {
+      return pick(
+        kz: 'Суретті жүктеу сәтсіз',
+        ru: 'Не удалось загрузить изображение',
+        en: 'Image upload failed',
+      );
+    }
+    return _translateLocaleValue(message, _apiErrorTexts);
+  }
 
   String statusLabel(String statusValue) {
     switch (statusValue) {
@@ -850,12 +990,9 @@ class AppText {
 
   String productNameText(Object? name) {
     final value = name?.toString() ?? '';
-    for (final item in _productNames.values) {
-      if (value == item.kz || value == item.ru || value == item.en) {
-        return pick(kz: item.kz, ru: item.ru, en: item.en);
-      }
-    }
-    return value;
+    final productName = _translateLocaleValue(value, _productNames.values);
+    if (productName != value) return productName;
+    return customItemNameText(value);
   }
 
   String categoryName(Category category) {
@@ -869,6 +1006,18 @@ class AppText {
     final formatted = Product.formatPrice(value).replaceAll(' тг', '');
     return locale == AppLocale.en ? '$formatted KZT' : '$formatted тг';
   }
+
+  String _translateLocaleValue(String value, Iterable<_LocaleValue> values) {
+    final normalized = value.trim();
+    for (final item in values) {
+      if (normalized == item.kz ||
+          normalized == item.ru ||
+          normalized == item.en) {
+        return pick(kz: item.kz, ru: item.ru, en: item.en);
+      }
+    }
+    return value;
+  }
 }
 
 class _LocaleValue {
@@ -878,6 +1027,357 @@ class _LocaleValue {
   final String ru;
   final String en;
 }
+
+const List<_LocaleValue> _notificationTexts = [
+  _LocaleValue(
+    kz: 'Төлем сәтті өтті',
+    ru: 'Оплата прошла успешно',
+    en: 'Payment successful',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс қабылданды',
+    ru: 'Заказ принят',
+    en: 'Order accepted',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс сәтті жасалды',
+    ru: 'Заказ успешно создан',
+    en: 'Order created',
+  ),
+];
+
+const List<_LocaleValue> _apiErrorTexts = [
+  _LocaleValue(
+    kz: 'Кіру қажет',
+    ru: 'Требуется вход',
+    en: 'Authentication required',
+  ),
+  _LocaleValue(kz: 'Кіру сәтсіз', ru: 'Не удалось войти', en: 'Login failed'),
+  _LocaleValue(
+    kz: 'Тіркелу сәтсіз',
+    ru: 'Не удалось зарегистрироваться',
+    en: 'Registration failed',
+  ),
+  _LocaleValue(
+    kz: 'Қалпына келтіру кодын жіберу сәтсіз',
+    ru: 'Не удалось отправить код восстановления',
+    en: 'Reset code send failed',
+  ),
+  _LocaleValue(
+    kz: 'Кодты тексеру сәтсіз',
+    ru: 'Не удалось проверить код',
+    en: 'Code verification failed',
+  ),
+  _LocaleValue(
+    kz: 'Құпиясөзді қалпына келтіру сәтсіз',
+    ru: 'Не удалось восстановить пароль',
+    en: 'Password reset failed',
+  ),
+  _LocaleValue(
+    kz: 'Санаттарды жүктеу сәтсіз',
+    ru: 'Не удалось загрузить категории',
+    en: 'Could not load categories',
+  ),
+  _LocaleValue(
+    kz: 'Өнімдерді жүктеу сәтсіз',
+    ru: 'Не удалось загрузить товары',
+    en: 'Could not load products',
+  ),
+  _LocaleValue(
+    kz: 'Ұсыныстарды жүктеу сәтсіз',
+    ru: 'Не удалось загрузить рекомендации',
+    en: 'Could not load recommendations',
+  ),
+  _LocaleValue(
+    kz: 'Жеке букет бөліктерін жүктеу сәтсіз',
+    ru: 'Не удалось загрузить детали своего букета',
+    en: 'Could not load custom bouquet items',
+  ),
+  _LocaleValue(
+    kz: 'Жеке букет бөлігін құру сәтсіз',
+    ru: 'Не удалось создать деталь своего букета',
+    en: 'Could not create custom bouquet item',
+  ),
+  _LocaleValue(
+    kz: 'Жеке букет бөлігін жаңарту сәтсіз',
+    ru: 'Не удалось обновить деталь своего букета',
+    en: 'Could not update custom bouquet item',
+  ),
+  _LocaleValue(
+    kz: 'Жеке букет бөлігін өшіру сәтсіз',
+    ru: 'Не удалось удалить деталь своего букета',
+    en: 'Could not delete custom bouquet item',
+  ),
+  _LocaleValue(
+    kz: 'Суретпен іздеу орындалмады',
+    ru: 'Не удалось выполнить поиск по фото',
+    en: 'Photo search failed',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыстарды жүктеу сәтсіз',
+    ru: 'Не удалось загрузить заказы',
+    en: 'Could not load orders',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс мәртебесін жаңарту сәтсіз',
+    ru: 'Не удалось обновить статус заказа',
+    en: 'Could not update order status',
+  ),
+  _LocaleValue(
+    kz: 'Әкімшілерді жүктеу сәтсіз',
+    ru: 'Не удалось загрузить сотрудников',
+    en: 'Could not load staff',
+  ),
+  _LocaleValue(
+    kz: 'Әкімші қосу сәтсіз',
+    ru: 'Не удалось добавить сотрудника',
+    en: 'Could not add staff',
+  ),
+  _LocaleValue(
+    kz: 'Әкімшіні жою сәтсіз',
+    ru: 'Не удалось удалить сотрудника',
+    en: 'Could not remove staff',
+  ),
+  _LocaleValue(
+    kz: 'Өнім құру сәтсіз',
+    ru: 'Не удалось создать товар',
+    en: 'Could not create product',
+  ),
+  _LocaleValue(
+    kz: 'Өнімді жаңарту сәтсіз',
+    ru: 'Не удалось обновить товар',
+    en: 'Could not update product',
+  ),
+  _LocaleValue(
+    kz: 'Қойма жаңарту сәтсіз',
+    ru: 'Не удалось обновить склад',
+    en: 'Could not update stock',
+  ),
+  _LocaleValue(
+    kz: 'Танымалдықты жаңарту сәтсіз',
+    ru: 'Не удалось обновить популярность',
+    en: 'Could not update popularity',
+  ),
+  _LocaleValue(
+    kz: 'Өнімді жою сәтсіз',
+    ru: 'Не удалось удалить товар',
+    en: 'Could not delete product',
+  ),
+  _LocaleValue(
+    kz: 'Чат тарихын жүктеу сәтсіз',
+    ru: 'Не удалось загрузить историю чатов',
+    en: 'Could not load chat history',
+  ),
+  _LocaleValue(
+    kz: 'Жаңа чат құру сәтсіз',
+    ru: 'Не удалось создать новый чат',
+    en: 'Could not create new chat',
+  ),
+  _LocaleValue(
+    kz: 'Чатты өшіру сәтсіз',
+    ru: 'Не удалось удалить чат',
+    en: 'Could not delete chat',
+  ),
+  _LocaleValue(
+    kz: 'Чат хабарламаларын жүктеу сәтсіз',
+    ru: 'Не удалось загрузить сообщения чата',
+    en: 'Could not load chat messages',
+  ),
+  _LocaleValue(
+    kz: 'AI хабарламасын жіберу сәтсіз',
+    ru: 'Не удалось отправить сообщение AI',
+    en: 'Could not send AI message',
+  ),
+  _LocaleValue(
+    kz: 'Төлем әдістерін жүктеу сәтсіз',
+    ru: 'Не удалось загрузить способы оплаты',
+    en: 'Could not load payment methods',
+  ),
+  _LocaleValue(
+    kz: 'Төлем әдісін жүктеу сәтсіз',
+    ru: 'Не удалось загрузить способ оплаты',
+    en: 'Could not load payment method',
+  ),
+  _LocaleValue(
+    kz: 'Төлем әдісін құру сәтсіз',
+    ru: 'Не удалось создать способ оплаты',
+    en: 'Could not create payment method',
+  ),
+  _LocaleValue(
+    kz: 'Төлем әдісін жаңарту сәтсіз',
+    ru: 'Не удалось обновить способ оплаты',
+    en: 'Could not update payment method',
+  ),
+  _LocaleValue(
+    kz: 'Төлем әдісін жою сәтсіз',
+    ru: 'Не удалось удалить способ оплаты',
+    en: 'Could not delete payment method',
+  ),
+  _LocaleValue(
+    kz: 'Таңдаулыларды жүктеу сәтсіз',
+    ru: 'Не удалось загрузить избранное',
+    en: 'Could not load favorites',
+  ),
+  _LocaleValue(
+    kz: 'Таңдаулыға қосу сәтсіз',
+    ru: 'Не удалось добавить в избранное',
+    en: 'Could not add to favorites',
+  ),
+  _LocaleValue(
+    kz: 'Таңдаулыдан жою сәтсіз',
+    ru: 'Не удалось удалить из избранного',
+    en: 'Could not remove from favorites',
+  ),
+  _LocaleValue(
+    kz: 'Себетті жүктеу сәтсіз',
+    ru: 'Не удалось загрузить корзину',
+    en: 'Could not load cart',
+  ),
+  _LocaleValue(
+    kz: 'Себетке қосу сәтсіз',
+    ru: 'Не удалось добавить в корзину',
+    en: 'Could not add to cart',
+  ),
+  _LocaleValue(
+    kz: 'Себетті жаңарту сәтсіз',
+    ru: 'Не удалось обновить корзину',
+    en: 'Could not update cart',
+  ),
+  _LocaleValue(
+    kz: 'Себеттен жою сәтсіз',
+    ru: 'Не удалось удалить из корзины',
+    en: 'Could not remove from cart',
+  ),
+  _LocaleValue(
+    kz: 'Себетті тазалау сәтсіз',
+    ru: 'Не удалось очистить корзину',
+    en: 'Could not clear cart',
+  ),
+  _LocaleValue(
+    kz: 'Жеке букетті себетке қосу сәтсіз',
+    ru: 'Не удалось добавить свой букет в корзину',
+    en: 'Could not add custom bouquet to cart',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс жасау сәтсіз',
+    ru: 'Не удалось создать заказ',
+    en: 'Could not create order',
+  ),
+  _LocaleValue(
+    kz: 'Жеке букет тапсырысын жасау сәтсіз',
+    ru: 'Не удалось создать заказ своего букета',
+    en: 'Could not create custom bouquet order',
+  ),
+  _LocaleValue(
+    kz: 'Менің тапсырыстарымды жүктеу сәтсіз',
+    ru: 'Не удалось загрузить мои заказы',
+    en: 'Could not load my orders',
+  ),
+  _LocaleValue(
+    kz: 'Хабарламаларды жүктеу сәтсіз',
+    ru: 'Не удалось загрузить уведомления',
+    en: 'Could not load notifications',
+  ),
+  _LocaleValue(
+    kz: 'Хабарлама құру сәтсіз',
+    ru: 'Не удалось создать уведомление',
+    en: 'Could not create notification',
+  ),
+  _LocaleValue(
+    kz: 'Хабарламаны оқылғанға белгілеу сәтсіз',
+    ru: 'Не удалось отметить уведомление прочитанным',
+    en: 'Could not mark notification as read',
+  ),
+];
+
+const Map<String, _LocaleValue> _customItemNames = {
+  'assets/custom_bouquet/custom_bouquet_red_rose.png': _LocaleValue(
+    kz: 'Қызыл раушан',
+    ru: 'Красная роза',
+    en: 'Red rose',
+  ),
+  'assets/custom_bouquet/custom_bouquet_white_rose.png': _LocaleValue(
+    kz: 'Ақ раушан',
+    ru: 'Белая роза',
+    en: 'White rose',
+  ),
+  'assets/custom_bouquet/custom_bouquet_tulip.png': _LocaleValue(
+    kz: 'Қызғалдақ',
+    ru: 'Тюльпан',
+    en: 'Tulip',
+  ),
+  'assets/custom_bouquet/custom_bouquet_hydrangea.png': _LocaleValue(
+    kz: 'Гортензия',
+    ru: 'Гортензия',
+    en: 'Hydrangea',
+  ),
+  'assets/custom_bouquet/custom_bouquet_kraft_wrap.png': _LocaleValue(
+    kz: 'Крафт қағазы',
+    ru: 'Крафт-бумага',
+    en: 'Kraft paper',
+  ),
+  'assets/custom_bouquet/custom_bouquet_satin_ribbon.png': _LocaleValue(
+    kz: 'Атлас таспа',
+    ru: 'Атласная лента',
+    en: 'Satin ribbon',
+  ),
+  'assets/custom_bouquet/custom_bouquet_premium_box.png': _LocaleValue(
+    kz: 'Премиум қорап',
+    ru: 'Премиум-коробка',
+    en: 'Premium box',
+  ),
+  'assets/custom_bouquet/custom_bouquet_green_leaf.png': _LocaleValue(
+    kz: 'Жасыл жапырақ',
+    ru: 'Зеленый лист',
+    en: 'Green leaf',
+  ),
+  'assets/custom_bouquet/custom_bouquet_card.png': _LocaleValue(
+    kz: 'Ашықхат',
+    ru: 'Открытка',
+    en: 'Greeting card',
+  ),
+  'assets/custom_bouquet/custom_bouquet_balloon.png': _LocaleValue(
+    kz: 'Шар',
+    ru: 'Шар',
+    en: 'Balloon',
+  ),
+};
+
+const Map<String, _LocaleValue> _pickupStoreNames = {
+  'kyz-zhibek': _LocaleValue(
+    kz: 'Gul Alem - Қыз Жібек',
+    ru: 'Gul Alem - Кыз Жибек',
+    en: 'Gul Alem - Kyz Zhibek',
+  ),
+  'kerey-zhanibek-khandar': _LocaleValue(
+    kz: 'Gul Alem - Керей, Жәнібек хандар',
+    ru: 'Gul Alem - Керей, Жанибек хандар',
+    en: 'Gul Alem - Kerey Zhanibek Khandar',
+  ),
+  'dinmukhamed-konayev': _LocaleValue(
+    kz: 'Gul Alem - Дінмұхамед Қонаев',
+    ru: 'Gul Alem - Динмухамед Кунаев',
+    en: 'Gul Alem - Dinmukhamed Konayev',
+  ),
+};
+
+const Map<String, _LocaleValue> _pickupStoreAddresses = {
+  'kyz-zhibek': _LocaleValue(
+    kz: 'Қыз Жібек көшесі 36, Астана',
+    ru: 'улица Кыз Жибек, 36, Астана',
+    en: 'Kyz Zhibek Street 36, Astana',
+  ),
+  'kerey-zhanibek-khandar': _LocaleValue(
+    kz: 'Керей, Жәнібек хандар көшесі 17, Астана',
+    ru: 'улица Керей, Жанибек хандар, 17, Астана',
+    en: 'Kerey Zhanibek Khandar Street 17, Astana',
+  ),
+  'dinmukhamed-konayev': _LocaleValue(
+    kz: 'Дінмұхамед Қонаев көшесі 14, Астана',
+    ru: 'улица Динмухамеда Кунаева, 14, Астана',
+    en: 'Dinmukhamed Konayev Street 14, Astana',
+  ),
+};
 
 const Map<String, _LocaleValue> _filterOptions = {
   'birthday': _LocaleValue(
