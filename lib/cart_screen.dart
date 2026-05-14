@@ -3,6 +3,8 @@ import 'app_language.dart';
 import 'cart_item.dart';
 import 'services/api_service.dart';
 import 'cart_payment_screen.dart';
+import 'custom_bouquet_assets.dart';
+import 'custom_bouquet_screen.dart';
 import 'widgets/product_image.dart';
 
 class CartScreen extends StatefulWidget {
@@ -66,6 +68,79 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  Future<void> _editCustomBouquet(CartItem item) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomBouquetScreen(cartItem: item),
+      ),
+    );
+    if (saved == true) {
+      await _loadCart();
+    }
+  }
+
+  Widget _imageFallback() {
+    return Container(
+      width: 64,
+      height: 64,
+      color: Colors.pink[50],
+      child: Icon(Icons.local_florist, color: darkPink),
+    );
+  }
+
+  Widget _buildCartImage(CartItem item) {
+    if (item.isCustom) {
+      return Image.asset(
+        customBouquetIconAsset,
+        width: 64,
+        height: 64,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _imageFallback(),
+      );
+    }
+
+    return ProductImage(
+      product: item.product,
+      width: 64,
+      height: 64,
+      fit: BoxFit.cover,
+      errorWidget: _imageFallback(),
+    );
+  }
+
+  Widget _buildCustomDetails(AppText t, CartItem item) {
+    final grouped = <String, List<CustomCartItem>>{};
+    for (final customItem in item.customItems) {
+      grouped.putIfAbsent(customItem.group, () => []).add(customItem);
+    }
+
+    final orderedGroups = [
+      for (final group in const ['flowers', 'wrapping', 'extras'])
+        if (grouped.containsKey(group)) group,
+      for (final group in grouped.keys)
+        if (!const ['flowers', 'wrapping', 'extras'].contains(group)) group,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final group in orderedGroups)
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(
+              '${t.customGroupLabel(group)}: ${grouped[group]!.map(_formatCustomDetail).join(', ')}',
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _formatCustomDetail(CustomCartItem item) {
+    return '${item.quantity} x ${item.name}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.t;
@@ -111,21 +186,7 @@ class _CartScreenState extends State<CartScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: ProductImage(
-                                product: item.product,
-                                width: 64,
-                                height: 64,
-                                fit: BoxFit.cover,
-                                errorWidget: Container(
-                                  width: 64,
-                                  height: 64,
-                                  color: Colors.pink[50],
-                                  child: Icon(
-                                    Icons.local_florist,
-                                    color: darkPink,
-                                  ),
-                                ),
-                              ),
+                              child: _buildCartImage(item),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -140,6 +201,11 @@ class _CartScreenState extends State<CartScreen> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  if (item.isCustom &&
+                                      item.customItems.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    _buildCustomDetails(t, item),
+                                  ],
                                   if (item.isCustom &&
                                       item.description.isNotEmpty) ...[
                                     const SizedBox(height: 4),
@@ -185,12 +251,29 @@ class _CartScreenState extends State<CartScreen> {
                                 ],
                               ),
                             ),
-                            Text(
-                              t.priceValue(item.lineTotal),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: darkPink,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  t.priceValue(item.lineTotal),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: darkPink,
+                                  ),
+                                ),
+                                if (item.isCustom) ...[
+                                  const SizedBox(height: 8),
+                                  IconButton(
+                                    tooltip: t.update,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => _editCustomBouquet(item),
+                                    icon: Icon(
+                                      Icons.edit_outlined,
+                                      color: darkPink,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),

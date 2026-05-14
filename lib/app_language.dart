@@ -947,6 +947,11 @@ const Map<String, _LocaleValue> _categoryNames = {
   ),
   'assets/cat_9.png': _LocaleValue(kz: 'Шарлар', ru: 'Шары', en: 'Balloons'),
   'assets/cat_10.png': _LocaleValue(kz: 'Өзім', ru: 'Свой', en: 'DIY'),
+  'assets/custom_bouquet/custom_icon.png': _LocaleValue(
+    kz: 'Өзім',
+    ru: 'Свой',
+    en: 'DIY',
+  ),
 };
 
 const Map<String, _LocaleValue> _productNames = {

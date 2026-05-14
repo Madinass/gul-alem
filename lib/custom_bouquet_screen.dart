@@ -3,11 +3,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'app_language.dart';
+import 'cart_item.dart';
 import 'custom_bouquet_item.dart';
 import 'services/api_service.dart';
 
 class CustomBouquetScreen extends StatefulWidget {
-  const CustomBouquetScreen({super.key});
+  final CartItem? cartItem;
+
+  const CustomBouquetScreen({super.key, this.cartItem});
 
   @override
   State<CustomBouquetScreen> createState() => _CustomBouquetScreenState();
@@ -24,10 +27,14 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   final Set<String> _expandedGroups = {'flowers'};
   bool _loading = true;
   bool _submitting = false;
+  bool _initialCartItemApplied = false;
+
+  bool get _isEditingCartItem => widget.cartItem != null;
 
   @override
   void initState() {
     super.initState();
+    _descriptionController.text = widget.cartItem?.description ?? '';
     _loadItems();
   }
 
@@ -43,12 +50,26 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
       if (!mounted) return;
       setState(() {
         _items = items;
+        _applyInitialCartItem();
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  void _applyInitialCartItem() {
+    final cartItem = widget.cartItem;
+    if (_initialCartItemApplied || cartItem == null) return;
+
+    final availableIds = _items.map((item) => item.id).toSet();
+    for (final item in cartItem.customItems) {
+      if (!availableIds.contains(item.id) || item.quantity <= 0) continue;
+      _quantities[item.id] = item.quantity;
+      if (item.group.isNotEmpty) _expandedGroups.add(item.group);
+    }
+    _initialCartItemApplied = true;
   }
 
   int get _total {
@@ -140,12 +161,13 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
       await ApiService.addCustomBouquetToCart(
         items: payload,
         description: _descriptionController.text.trim(),
+        quantity: widget.cartItem?.quantity ?? 1,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
-      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditingCartItem ? t.success : t.addedToCart)),
+      );
+      Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -933,13 +955,15 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(
-                    Icons.shopping_cart_outlined,
+                : Icon(
+                    _isEditingCartItem
+                        ? Icons.save_outlined
+                        : Icons.shopping_cart_outlined,
                     color: Colors.white,
                     size: 18,
                   ),
             label: Text(
-              t.addToCart,
+              _isEditingCartItem ? t.save : t.addToCart,
               style: const TextStyle(color: Colors.white),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'add_to_cart_sheet.dart';
 import 'product.dart';
 import 'chat_screen.dart';
+import 'custom_bouquet_assets.dart';
 import 'custom_bouquet_screen.dart';
 import 'services/api_service.dart';
 import 'notification_screen.dart';
@@ -642,7 +643,15 @@ class _BasBetScreenState extends State<BasBetScreen>
                   color: lightPink,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.local_florist, color: darkPink, size: 30),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    customBouquetIconAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.local_florist, color: darkPink, size: 30),
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
