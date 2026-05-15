@@ -107,6 +107,7 @@ flutter:
     - assets/us_1.png
     - assets/us_2.png 
     - assets/us_3.png
+    - assets/about_us_new.png
   fonts:
     - family: Rubik
       fonts:
