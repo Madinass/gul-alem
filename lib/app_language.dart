@@ -487,6 +487,26 @@ class AppText {
   String get expiryDate =>
       pick(kz: 'Жарамдылық мерзімі', ru: 'Срок действия', en: 'Expiry date');
   String get cvv => pick(kz: 'CVV', ru: 'CVV', en: 'CVV');
+  String get invalidCardholderName => pick(
+    kz: 'Карта иесінің атын енгізіңіз',
+    ru: 'Введите имя владельца карты',
+    en: 'Enter the cardholder name',
+  );
+  String get invalidCardNumber => pick(
+    kz: 'Карта нөмірі 16 саннан тұруы керек',
+    ru: 'Номер карты должен содержать 16 цифр',
+    en: 'Card number must contain 16 digits',
+  );
+  String get invalidExpiryDate => pick(
+    kz: 'Жарамды мерзімді АА/ЖЖ форматында енгізіңіз',
+    ru: 'Введите действительный срок в формате ММ/ГГ',
+    en: 'Enter a valid expiry date in MM/YY format',
+  );
+  String get invalidCvv => pick(
+    kz: 'CVV 3 немесе 4 саннан тұруы керек',
+    ru: 'CVV должен содержать 3 или 4 цифры',
+    en: 'CVV must contain 3 or 4 digits',
+  );
   String get expMonth =>
       pick(kz: 'Аяқталу айы', ru: 'Месяц', en: 'Expiry month');
   String get expYear => pick(kz: 'Аяқталу жылы', ru: 'Год', en: 'Expiry year');

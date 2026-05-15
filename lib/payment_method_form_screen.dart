@@ -34,23 +34,31 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
     final number = paymentCardDigits(_numberController.text);
     final expiry = parsePaymentExpiry(_expiryController.text);
     final cvv = paymentCardDigits(_cvvController.text);
-    if (name.isEmpty ||
-        number.length < 12 ||
-        expiry == null ||
-        cvv.length < 3 ||
-        cvv.length > 4) {
+
+    String? errorMessage;
+    if (name.isEmpty) {
+      errorMessage = t.invalidCardholderName;
+    } else if (number.length != 16) {
+      errorMessage = t.invalidCardNumber;
+    } else if (expiry == null) {
+      errorMessage = t.invalidExpiryDate;
+    } else if (cvv.length < 3 || cvv.length > 4) {
+      errorMessage = t.invalidCvv;
+    }
+    if (errorMessage != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(t.fillAllFields)));
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
       return;
     }
+    final validExpiry = expiry!;
     setState(() => _saving = true);
     try {
       await ApiService.createPaymentMethod(
         cardholderName: name,
         cardNumber: number,
-        expMonth: expiry.month,
-        expYear: expiry.year,
+        expMonth: validExpiry.month,
+        expYear: validExpiry.year,
         cvv: cvv,
       );
       if (!mounted) return;

@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 
-final RegExp _cardholderNameAllowedPattern = RegExp(r"[A-Z' ]");
+final RegExp _cardholderNameAllowedPattern = RegExp(
+  r"[A-ZА-ЯЁӘҒҚҢӨҰҮҺІ'’ -]",
+);
 
 class PaymentExpiry {
   final String month;
@@ -98,7 +100,7 @@ PaymentExpiry? parsePaymentExpiry(String value, {DateTime? now}) {
 }
 
 class CardNumberInputFormatter extends TextInputFormatter {
-  static const int _maxDigits = 19;
+  static const int _maxDigits = 16;
 
   const CardNumberInputFormatter();
 
