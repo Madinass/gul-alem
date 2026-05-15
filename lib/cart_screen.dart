@@ -119,6 +119,18 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  String _cartItemTitle(AppText t, CartItem item) {
+    if (!item.isCustom) return t.productName(item.product);
+
+    final customName = item.customName.trim().isNotEmpty
+        ? item.customName.trim()
+        : item.product.name.trim();
+    if (customName.isEmpty || customName == 'Custom bouquet') {
+      return t.customBouquet;
+    }
+    return customName;
+  }
+
   Widget _buildCustomDetails(AppText t, CartItem item) {
     final grouped = <String, List<CustomCartItem>>{};
     for (final customItem in item.customItems) {
@@ -207,9 +219,7 @@ class _CartScreenState extends State<CartScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item.isCustom
-                                        ? t.customBouquet
-                                        : t.productName(item.product),
+                                    _cartItemTitle(t, item),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                     ),
