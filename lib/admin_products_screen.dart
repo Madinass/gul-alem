@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'app_language.dart';
 import 'product.dart';
@@ -68,7 +67,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     String? categoryId =
         product?.categoryId ??
         (categories.isNotEmpty ? categories.first.id : null);
-    File? selectedImageFile;
+    XFile? selectedImageFile;
     bool saving = false;
     String? errorMessage;
 
@@ -86,7 +85,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 );
                 if (image == null) return;
                 setDialogState(() {
-                  selectedImageFile = File(image.path);
+                  selectedImageFile = image;
                   errorMessage = null;
                 });
               } catch (e) {
@@ -164,9 +163,19 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       child: selectedImageFile != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                selectedImageFile!,
-                                fit: BoxFit.contain,
+                              child: FutureBuilder<Uint8List>(
+                                future: selectedImageFile!.readAsBytes(),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                                  return Image.memory(
+                                    snapshot.data!,
+                                    fit: BoxFit.contain,
+                                  );
+                                },
                               ),
                             )
                           : product != null && product.displayImage.isNotEmpty
@@ -195,6 +204,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       controller: priceController,
                       enabled: !saving,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(labelText: t.price),
                     ),
                     TextField(
@@ -211,6 +221,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       controller: stockController,
                       enabled: !saving,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(labelText: t.stockCount),
                     ),
                     const SizedBox(height: 10),

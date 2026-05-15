@@ -1,4 +1,34 @@
 class RegisterValidator {
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
+  static final RegExp _nameLetterPattern = RegExp(
+    r"[A-Za-zА-Яа-яЁёӘәІіҢңҒғҮүҰұҚқӨөҺһ]",
+  );
+  static final RegExp _nameAllowedPattern = RegExp(
+    r"^[A-Za-zА-Яа-яЁёӘәІіҢңҒғҮүҰұҚқӨөҺһ\s'.-]+$",
+  );
+
+  static String normalizePhone(String phone) {
+    return phone.replaceAll(RegExp(r'\D'), '');
+  }
+
+  static bool isValidFullName(String name) {
+    final value = name.trim().replaceAll(RegExp(r'\s+'), ' ');
+    return value.length >= 2 &&
+        value.length <= 80 &&
+        _nameLetterPattern.hasMatch(value) &&
+        _nameAllowedPattern.hasMatch(value);
+  }
+
+  static bool isValidPhone(String phone) {
+    final digits = normalizePhone(phone);
+    return digits.length >= 10 && digits.length <= 11;
+  }
+
+  static bool isValidEmail(String email) {
+    final value = email.trim();
+    return value.length <= 254 && _emailPattern.hasMatch(value);
+  }
+
   static String? validatePassword(String password, String confirmPassword) {
     if (password.length < 8) {
       return "Құпия сөз кемінде 8 таңбадан тұруы керек.";

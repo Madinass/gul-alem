@@ -5,6 +5,7 @@ import 'app_language.dart';
 import 'login_screen.dart'; // Сақтау
 // Мына импортты қосыңыз немесе түзетіңіз:
 import 'main_wrapper.dart';
+import 'register_validator.dart';
 import 'services/api_service.dart';
 
 class RegisterApp extends StatelessWidget {
@@ -33,6 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -46,52 +48,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _handleRegistration() async {
     final t = context.t;
-    String password = passwordController.text;
-    String confirmPassword = confirmPasswordController.text;
+    final name = nameController.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final phone = RegisterValidator.normalizePhone(numberController.text);
+    final email = emailController.text.trim().toLowerCase();
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    void showValidationError(String message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    }
+
+    if (!RegisterValidator.isValidFullName(name)) {
+      showValidationError(t.invalidFullName);
+      return;
+    }
+    if (!RegisterValidator.isValidPhone(phone)) {
+      showValidationError(t.invalidPhone);
+      return;
+    }
+    if (!RegisterValidator.isValidEmail(email)) {
+      showValidationError(t.invalidEmail);
+      return;
+    }
 
     // Құпия сөздің ұзындығы және шарттар
     if (password.length < 8 || password.length > 64) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.passwordLengthRule),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showValidationError(t.passwordLengthRule);
       return;
     }
     if (!RegExp(r'\d').hasMatch(password)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.passwordNumberRule),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showValidationError(t.passwordNumberRule);
       return;
     }
     if (!RegExp(r'[^\w\s]').hasMatch(password)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.passwordSpecialRule),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showValidationError(t.passwordSpecialRule);
       return;
     }
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.passwordsDoNotMatch),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showValidationError(t.passwordsDoNotMatch);
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
       final data = await ApiService.register(
-        name: nameController.text.trim(),
-        phone: numberController.text.trim(),
-        email: emailController.text.trim(),
+        name: name,
+        phone: phone,
+        email: email,
         password: password,
       );
 
@@ -122,6 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -136,8 +146,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     List<TextInputFormatter>? inputFormatters,
     int? maxLength,
   ]) {
-    final primaryColor = const Color.fromARGB(255, 238, 111, 151);
-
     return TextField(
       controller: controller,
       obscureText: isPassword && !isVisible,
@@ -146,9 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       maxLength: maxLength,
       style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: primaryColor),
+        hintText: label,
         counterText: maxLength != null ? "" : null,
         suffixIcon: isPassword
             ? IconButton(
@@ -156,29 +162,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   isVisible
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: primaryColor,
+                  color: Colors.pink,
                 ),
                 onPressed: () => toggleVisibility(!isVisible),
               )
             : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.0),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: primaryColor, width: 2.0),
-        ),
-        filled: true,
-        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
-          vertical: 18,
-          horizontal: 15,
+          horizontal: 12,
+          vertical: 14,
         ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.pink.shade300, width: 2),
+        ),
+        prefixIcon: Icon(icon, color: Colors.pink.shade300, size: 20),
       ),
     );
   }
@@ -186,194 +184,185 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    const softPink = Color.fromARGB(255, 255, 245, 247);
-    const darkPink = Color.fromARGB(255, 230, 0, 100);
-    final Size screenSize = MediaQuery.of(context).size;
-
-    const String placeholderAssetPath = 'assets/icon_profile.png';
-    const double imageSize = 100.0;
-
     return Scaffold(
-      backgroundColor: softPink,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           Positioned(
-            top: -screenSize.height * 0.1,
-            right: -screenSize.width * 0.1,
-            child: Container(
-              width: screenSize.width * 0.8,
-              height: screenSize.width * 0.8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: darkPink.withOpacity(0.05),
+            top: 0,
+            right: -30,
+            child: SizedBox(
+              width: 250,
+              height: 250,
+              child: Image.asset(
+                'assets/glavflow.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.favorite,
+                  size: 250,
+                  color: Color(0xFFFFC0CB),
+                ),
               ),
             ),
           ),
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                top: 80,
-                bottom: 120,
-                left: 25,
-                right: 25,
-              ),
-              child: Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(35),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
                 ),
-                elevation: 15,
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        placeholderAssetPath,
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: imageSize,
-                            height: imageSize,
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 255, 192, 203),
-                              borderRadius: BorderRadius.circular(15),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: 140,
+                      height: 140,
+                      child: Image.asset(
+                        'assets/icon_profile.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.person,
+                              size: 100,
+                              color: Color(0xFFE91E63),
                             ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      t.registerSubtitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    _buildTextField(
+                      nameController,
+                      t.fullName,
+                      Icons.person_outline,
+                      false,
+                      false,
+                      (v) {},
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      numberController,
+                      t.phoneNumber,
+                      Icons.phone_android,
+                      false,
+                      false,
+                      (v) {},
+                      TextInputType.phone,
+                      [FilteringTextInputFormatter.digitsOnly],
+                      11,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      emailController,
+                      t.email,
+                      Icons.email_outlined,
+                      false,
+                      false,
+                      (v) {},
+                      TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      passwordController,
+                      t.password,
+                      Icons.lock_outline,
+                      true,
+                      _isPasswordVisible,
+                      (v) => setState(() => _isPasswordVisible = v),
+                      TextInputType.text,
+                      null,
+                      64,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      confirmPasswordController,
+                      t.confirmPassword,
+                      Icons.lock_reset,
+                      true,
+                      _isConfirmPasswordVisible,
+                      (v) => setState(() => _isConfirmPasswordVisible = v),
+                      TextInputType.text,
+                      null,
+                      64,
+                    ),
+                    const SizedBox(height: 20),
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.pink)
+                        : SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              style: _buttonStyle(
+                                Colors.pink.shade50,
+                                Colors.pink.shade300,
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 30),
-                      Text(
-                        t.registerSubtitle,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      _buildTextField(
-                        nameController,
-                        t.fullName,
-                        Icons.person_outline,
-                        false,
-                        false,
-                        (v) {},
-                      ),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                        numberController,
-                        t.phoneNumber,
-                        Icons.phone_android,
-                        false,
-                        false,
-                        (v) {},
-                        TextInputType.phone,
-                        null,
-                        11,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                        emailController,
-                        t.email,
-                        Icons.email_outlined,
-                        false,
-                        false,
-                        (v) {},
-                        TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                        passwordController,
-                        t.password,
-                        Icons.lock_outline,
-                        true,
-                        _isPasswordVisible,
-                        (v) => setState(() => _isPasswordVisible = v),
-                        TextInputType.text,
-                        null,
-                        64,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                        confirmPasswordController,
-                        t.confirmPassword,
-                        Icons.lock_reset,
-                        true,
-                        _isConfirmPasswordVisible,
-                        (v) => setState(() => _isConfirmPasswordVisible = v),
-                        TextInputType.text,
-                        null,
-                        64,
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            t.alreadyRegistered,
-                            style: const TextStyle(color: Colors.black54),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const LoginScreen(),
+                              onPressed: _handleRegistration,
+                              icon: const Icon(
+                                Icons.person_add_alt_1,
+                                color: Colors.pink,
+                              ),
+                              label: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  t.registerAction,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
                                 ),
-                              );
-                            },
-                            child: Text(
-                              t.login,
-                              style: TextStyle(
-                                color: darkPink,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.all(25.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkPink,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 10,
+            bottom: 40,
+            right: 30,
+            child: SizedBox(
+              width: 180,
+              height: 55,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink.shade400,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  onPressed: _handleRegistration,
-                  child: Text(
-                    t.registerAction,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  elevation: 8,
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: Text(
+                  t.login,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -381,6 +370,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  ButtonStyle _buttonStyle(Color bg, Color border) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: border, width: 1.5),
+      ),
+      elevation: 4,
     );
   }
 }

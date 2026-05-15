@@ -145,9 +145,7 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
               itemBuilder: (context, index) {
                 final admin = admins[index];
                 final email = admin['email']?.toString() ?? '';
-                final role = admin['role'] == 'worker'
-                    ? t.roleWorker
-                    : t.roleAdmin;
+                final role = t.roleLabel(admin['role']?.toString() ?? '');
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(

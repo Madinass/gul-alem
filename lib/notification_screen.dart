@@ -45,7 +45,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final softPink = darkPink.withOpacity(0.08);
+    final softPink = darkPink.withValues(alpha: 0.08);
 
     return Scaffold(
       appBar: AppBar(
@@ -109,7 +109,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     border: Border.all(color: const Color(0xFFFFE6EB)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 6,
                         offset: const Offset(0, 3),
                       ),

@@ -51,7 +51,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             width: screenSize.width * 0.8,
             height: screenSize.height * 0.4,
             decoration: BoxDecoration(
-              color: product.color.withOpacity(0.3),
+              color: product.color.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(25),
             ),
             child: ProductImage(
@@ -59,7 +59,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               fit: BoxFit.contain,
               errorWidget: Icon(
                 Icons.local_florist,
-                color: darkPink.withOpacity(0.7),
+                color: darkPink.withValues(alpha: 0.7),
                 size: 100,
               ),
             ),
@@ -134,7 +134,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.4),
+            color: Colors.grey.withValues(alpha: 0.4),
             spreadRadius: 2,
             blurRadius: 6,
             offset: const Offset(0, -2),

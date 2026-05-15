@@ -3,7 +3,6 @@ import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
 import 'category_detail_screen.dart';
 import 'category.dart';
-import 'custom_bouquet_assets.dart';
 import 'custom_bouquet_screen.dart';
 import 'filter_option_screen.dart';
 import 'filter_options.dart';
@@ -408,9 +407,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
     final isCustomBouquet =
         categoryImage.contains('cat_10') ||
         categoryImage.contains('custom_icon');
-    final imagePath = isCustomBouquet
-        ? customBouquetIconAsset
-        : category.imagePath;
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -444,7 +440,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             children: [
               Positioned.fill(
                 child: Image.asset(
-                  imagePath,
+                  category.imagePath,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
                       Icon(Icons.local_florist, size: 36, color: darkPink),

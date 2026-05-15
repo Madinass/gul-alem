@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_language.dart';
+import 'payment_card_input.dart';
 import 'services/api_service.dart';
 
 class PaymentMethodFormScreen extends StatefulWidget {
@@ -13,8 +15,7 @@ class PaymentMethodFormScreen extends StatefulWidget {
 class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
   final _nameController = TextEditingController();
   final _numberController = TextEditingController();
-  final _expMonthController = TextEditingController();
-  final _expYearController = TextEditingController();
+  final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   bool _saving = false;
 
@@ -22,8 +23,7 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
   void dispose() {
     _nameController.dispose();
     _numberController.dispose();
-    _expMonthController.dispose();
-    _expYearController.dispose();
+    _expiryController.dispose();
     _cvvController.dispose();
     super.dispose();
   }
@@ -31,15 +31,14 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
   Future<void> _save() async {
     final t = context.t;
     final name = _nameController.text.trim();
-    final number = _numberController.text.trim();
-    final expMonth = _expMonthController.text.trim();
-    final expYear = _expYearController.text.trim();
-    final cvv = _cvvController.text.trim();
+    final number = paymentCardDigits(_numberController.text);
+    final expiry = parsePaymentExpiry(_expiryController.text);
+    final cvv = paymentCardDigits(_cvvController.text);
     if (name.isEmpty ||
-        number.isEmpty ||
-        expMonth.isEmpty ||
-        expYear.isEmpty ||
-        cvv.isEmpty) {
+        number.length < 12 ||
+        expiry == null ||
+        cvv.length < 3 ||
+        cvv.length > 4) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(t.fillAllFields)));
@@ -50,8 +49,8 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
       await ApiService.createPaymentMethod(
         cardholderName: name,
         cardNumber: number,
-        expMonth: expMonth,
-        expYear: expYear,
+        expMonth: expiry.month,
+        expYear: expiry.year,
         cvv: cvv,
       );
       if (!mounted) return;
@@ -71,13 +70,25 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
     TextEditingController controller, {
     TextInputType keyboardType = TextInputType.text,
     bool obscure = false,
+    String? hintText,
+    IconData? prefixIcon,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
+    Iterable<String>? autofillHints,
+    TextInputAction textInputAction = TextInputAction.next,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscure,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
+        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
         filled: true,
         fillColor: const Color(0xFFFFF6F8),
         border: OutlineInputBorder(
@@ -107,40 +118,60 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildField(t.cardholderName, _nameController),
-            const SizedBox(height: 12),
             _buildField(
               t.cardNumber,
               _numberController,
               keyboardType: TextInputType.number,
+              hintText: '1234 5678 9012 3456',
+              prefixIcon: Icons.credit_card,
+              inputFormatters: const [CardNumberInputFormatter()],
+              autofillHints: const [AutofillHints.creditCardNumber],
+            ),
+            const SizedBox(height: 12),
+            _buildField(
+              t.cardholderName,
+              _nameController,
+              textCapitalization: TextCapitalization.characters,
+              hintText: t.cardholderNameHint,
+              prefixIcon: Icons.person_outline,
+              autofillHints: const [AutofillHints.creditCardName],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _buildField(
-                    t.expMonth,
-                    _expMonthController,
+                    t.expiryDate,
+                    _expiryController,
                     keyboardType: TextInputType.number,
+                    hintText: '08/28',
+                    prefixIcon: Icons.calendar_today_outlined,
+                    inputFormatters: const [ExpiryDateInputFormatter()],
+                    autofillHints: const [
+                      AutofillHints.creditCardExpirationDate,
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildField(
-                    t.expYear,
-                    _expYearController,
+                    t.cvv,
+                    _cvvController,
                     keyboardType: TextInputType.number,
+                    obscure: true,
+                    hintText: '123',
+                    prefixIcon: Icons.lock_outline,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                    autofillHints: const [AutofillHints.creditCardSecurityCode],
+                    textInputAction: TextInputAction.done,
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            _buildField(
-              'CVV',
-              _cvvController,
-              keyboardType: TextInputType.number,
-              obscure: true,
             ),
             const SizedBox(height: 20),
             SizedBox(

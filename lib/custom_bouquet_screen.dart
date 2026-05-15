@@ -162,6 +162,7 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
         items: payload,
         description: _descriptionController.text.trim(),
         quantity: widget.cartItem?.quantity ?? 1,
+        cartItemId: widget.cartItem?.id,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

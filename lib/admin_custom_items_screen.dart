@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'app_language.dart';
@@ -58,7 +57,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
     );
     var group = item?.group ?? _groups.first;
     var inStock = item?.inStock ?? true;
-    File? selectedImageFile;
+    XFile? selectedImageFile;
     var saving = false;
     String? errorMessage;
 
@@ -76,7 +75,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                 );
                 if (image == null) return;
                 setDialogState(() {
-                  selectedImageFile = File(image.path);
+                  selectedImageFile = image;
                   errorMessage = null;
                 });
               } catch (error) {
@@ -166,6 +165,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                       controller: priceController,
                       enabled: !saving,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(labelText: t.price),
                     ),
                     TextField(
@@ -177,12 +177,14 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
                       controller: stockController,
                       enabled: !saving,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(labelText: t.stockCount),
                     ),
                     TextField(
                       controller: orderController,
                       enabled: !saving,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(labelText: t.sortOrder),
                     ),
                     const SizedBox(height: 10),
@@ -358,7 +360,7 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
     );
   }
 
-  Widget _editorImagePreview({required File? file, required String source}) {
+  Widget _editorImagePreview({required XFile? file, required String source}) {
     return Container(
       height: 130,
       width: double.infinity,
@@ -369,7 +371,15 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: file != null
-            ? Image.file(file, fit: BoxFit.contain)
+            ? FutureBuilder<Uint8List>(
+                future: file.readAsBytes(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return Image.memory(snapshot.data!, fit: BoxFit.contain);
+                },
+              )
             : source.isNotEmpty
             ? _sourceImage(source)
             : Icon(Icons.image, color: darkPink, size: 42),

@@ -41,8 +41,18 @@ class _CartScreenState extends State<CartScreen> {
 
   int get _total => _items.fold(0, (sum, item) => sum + item.lineTotal);
 
+  bool _canIncreaseQuantity(CartItem item) {
+    if (item.isCustom) return true;
+    return item.product.inStock && item.quantity < item.product.stockCount;
+  }
+
   Future<void> _updateQuantity(CartItem item, int quantity) async {
     final t = context.t;
+    if (!item.isCustom &&
+        quantity > 0 &&
+        quantity > item.product.stockCount) {
+      return;
+    }
     try {
       await ApiService.updateCartItem(
         item.id,
@@ -241,10 +251,12 @@ class _CartScreenState extends State<CartScreen> {
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                       IconButton(
-                                        onPressed: () => _updateQuantity(
-                                          item,
-                                          item.quantity + 1,
-                                        ),
+                                        onPressed: _canIncreaseQuantity(item)
+                                            ? () => _updateQuantity(
+                                                item,
+                                                item.quantity + 1,
+                                              )
+                                            : null,
                                         icon: const Icon(
                                           Icons.add_circle_outline,
                                         ),

@@ -480,8 +480,13 @@ class AppText {
     ru: 'Имя владельца карты',
     en: 'Cardholder name',
   );
+  String get cardholderNameHint =>
+      pick(kz: 'КАРТА ИЕСІ', ru: 'ИМЯ ВЛАДЕЛЬЦА', en: 'CARDHOLDER NAME');
   String get cardNumber =>
       pick(kz: 'Карта нөмірі', ru: 'Номер карты', en: 'Card number');
+  String get expiryDate =>
+      pick(kz: 'Жарамдылық мерзімі', ru: 'Срок действия', en: 'Expiry date');
+  String get cvv => pick(kz: 'CVV', ru: 'CVV', en: 'CVV');
   String get expMonth =>
       pick(kz: 'Аяқталу айы', ru: 'Месяц', en: 'Expiry month');
   String get expYear => pick(kz: 'Аяқталу жылы', ru: 'Год', en: 'Expiry year');
@@ -543,6 +548,8 @@ class AppText {
   String get email => pick(kz: 'Эл. пошта', ru: 'Эл. почта', en: 'Email');
   String get roleAdmin => pick(kz: 'Әкімші', ru: 'Администратор', en: 'Admin');
   String get roleWorker => pick(kz: 'Қызметкер', ru: 'Сотрудник', en: 'Worker');
+  String get roleSuperAdmin =>
+      pick(kz: 'Бас әкімші', ru: 'Главный администратор', en: 'Super admin');
   String get products => pick(kz: 'Өнімдер', ru: 'Товары', en: 'Products');
   String get newProduct =>
       pick(kz: 'Жаңа өнім', ru: 'Новый товар', en: 'New product');
@@ -687,6 +694,16 @@ class AppText {
       pick(kz: 'Аты-жөніңіз', ru: 'Ваше имя', en: 'Full name');
   String get phoneNumber =>
       pick(kz: 'Телефон нөмірі', ru: 'Телефон', en: 'Phone number');
+  String get invalidFullName => pick(
+    kz: 'Атыңызды кемінде 2 әріппен енгізіңіз.',
+    ru: 'Введите имя минимум из 2 букв.',
+    en: 'Enter a name with at least 2 letters.',
+  );
+  String get invalidPhone => pick(
+    kz: 'Телефон нөмірін 10-11 цифрмен енгізіңіз.',
+    ru: 'Введите телефон из 10-11 цифр.',
+    en: 'Enter a phone number with 10-11 digits.',
+  );
   String get confirmPassword => pick(
     kz: 'Құпия сөзді қайталау',
     ru: 'Повторите пароль',
@@ -817,7 +834,20 @@ class AppText {
 
   String errorWith(Object errorValue) =>
       '$error: ${localizedErrorMessage(errorValue)}';
-  String roleValue(String roleValue) => '$role: $roleValue';
+  String roleValue(String roleValue) => '$role: ${roleLabel(roleValue)}';
+  String roleLabel(String roleValue) {
+    switch (roleValue) {
+      case 'worker':
+        return roleWorker;
+      case 'admin':
+        return roleAdmin;
+      case 'super_admin':
+        return roleSuperAdmin;
+      default:
+        return roleValue;
+    }
+  }
+
   String orderNumber(Object id) =>
       pick(kz: 'Тапсырыс №$id', ru: 'Заказ №$id', en: 'Order #$id');
   String get customOrderLabel =>
@@ -928,8 +958,45 @@ class AppText {
     return fallback?.toString() ?? '';
   }
 
-  String notificationText(String value) =>
-      _translateLocaleValue(value, _notificationTexts);
+  String notificationText(String value) {
+    final normalized = value.trim();
+    final orderSummary = RegExp(
+      r'^Тапсырыс №(.+) \| Клиент: (.*) \| Саны: ([0-9]+) \| Жалпы: ([0-9]+)$',
+    ).firstMatch(normalized);
+    if (orderSummary != null) {
+      final id = orderSummary.group(1)!;
+      final customer = orderSummary.group(2)!;
+      final count = orderSummary.group(3)!;
+      final total = _notificationAmount(orderSummary.group(4)!);
+      return pick(
+        kz: 'Тапсырыс №$id | Клиент: $customer | Саны: $count | Жалпы: $total',
+        ru: 'Заказ №$id | Клиент: $customer | Количество: $count | Итого: $total',
+        en: 'Order #$id | Customer: $customer | Qty: $count | Total: $total',
+      );
+    }
+
+    final orderAccepted = RegExp(
+      r'^Тапсырыс №(.+) қабылданды$',
+    ).firstMatch(normalized);
+    if (orderAccepted != null) {
+      final id = orderAccepted.group(1)!;
+      return pick(
+        kz: 'Тапсырыс №$id қабылданды',
+        ru: 'Заказ №$id принят',
+        en: 'Order #$id accepted',
+      );
+    }
+
+    final orderOnly = RegExp(r'^Тапсырыс №(.+)$').firstMatch(normalized);
+    if (orderOnly != null) return orderNumber(orderOnly.group(1)!);
+
+    return _translateLocaleValue(normalized, _notificationTexts);
+  }
+
+  String _notificationAmount(String value) {
+    final amount = int.tryParse(value);
+    return amount == null ? value : priceValue(amount);
+  }
 
   String localizedErrorMessage(Object errorValue) {
     final raw = errorValue.toString();
@@ -1034,6 +1101,7 @@ const List<_LocaleValue> _notificationTexts = [
     ru: 'Оплата прошла успешно',
     en: 'Payment successful',
   ),
+  _LocaleValue(kz: 'Тапсырыс жасалды', ru: 'Заказ создан', en: 'Order placed'),
   _LocaleValue(
     kz: 'Тапсырыс қабылданды',
     ru: 'Заказ принят',
@@ -1043,6 +1111,42 @@ const List<_LocaleValue> _notificationTexts = [
     kz: 'Тапсырыс сәтті жасалды',
     ru: 'Заказ успешно создан',
     en: 'Order created',
+  ),
+  _LocaleValue(kz: 'Жаңа тапсырыс', ru: 'Новый заказ', en: 'New order'),
+  _LocaleValue(
+    kz: 'Жеке букет тапсырысы',
+    ru: 'Заказ своего букета',
+    en: 'Custom bouquet order',
+  ),
+  _LocaleValue(
+    kz: 'Жаңа жеке букет',
+    ru: 'Новый свой букет',
+    en: 'New custom bouquet',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс күту режимінде',
+    ru: 'Заказ ожидает обработки',
+    en: 'Order is pending',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс өңделуде',
+    ru: 'Заказ обрабатывается',
+    en: 'Order is processing',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс расталды',
+    ru: 'Заказ подтвержден',
+    en: 'Order confirmed',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс бас тартылды',
+    ru: 'Заказ отменен',
+    en: 'Order cancelled',
+  ),
+  _LocaleValue(
+    kz: 'Тапсырыс мәртебесі өзгерді',
+    ru: 'Статус заказа изменен',
+    en: 'Order status changed',
   ),
 ];
 
@@ -1447,11 +1551,6 @@ const Map<String, _LocaleValue> _categoryNames = {
   ),
   'assets/cat_9.png': _LocaleValue(kz: 'Шарлар', ru: 'Шары', en: 'Balloons'),
   'assets/cat_10.png': _LocaleValue(kz: 'Өзім', ru: 'Свой', en: 'DIY'),
-  'assets/custom_bouquet/custom_icon.png': _LocaleValue(
-    kz: 'Өзім',
-    ru: 'Свой',
-    en: 'DIY',
-  ),
 };
 
 const Map<String, _LocaleValue> _productNames = {

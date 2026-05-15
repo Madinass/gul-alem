@@ -51,6 +51,20 @@ class ApiService {
     return response.statusCode >= 200 && response.statusCode < 300;
   }
 
+  static String _normalizeExpiryMonth(String value) {
+    final digits = value.trim().replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return value.trim();
+    final month = int.tryParse(digits);
+    if (month == null) return value.trim();
+    return month.toString().padLeft(2, '0');
+  }
+
+  static String _normalizeExpiryYear(String value) {
+    final digits = value.trim().replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 2) return '20$digits';
+    return digits.isEmpty ? value.trim() : digits;
+  }
+
   static Future<void> storeSession({
     required String token,
     required String role,
@@ -596,6 +610,8 @@ class ApiService {
     required String cvv,
   }) async {
     final token = await _requireToken();
+    final normalizedExpMonth = _normalizeExpiryMonth(expMonth);
+    final normalizedExpYear = _normalizeExpiryYear(expYear);
     final response = await http.post(
       Uri.parse('$baseUrl/payment-methods'),
       headers: {
@@ -605,8 +621,8 @@ class ApiService {
       body: jsonEncode({
         'cardholderName': cardholderName,
         'cardNumber': cardNumber,
-        'expMonth': expMonth,
-        'expYear': expYear,
+        'expMonth': normalizedExpMonth,
+        'expYear': normalizedExpYear,
         'cvv': cvv,
       }),
     );
@@ -622,6 +638,8 @@ class ApiService {
     required String expYear,
   }) async {
     final token = await _requireToken();
+    final normalizedExpMonth = _normalizeExpiryMonth(expMonth);
+    final normalizedExpYear = _normalizeExpiryYear(expYear);
     final response = await http.put(
       Uri.parse('$baseUrl/payment-methods/$id'),
       headers: {
@@ -630,8 +648,8 @@ class ApiService {
       },
       body: jsonEncode({
         'cardholderName': cardholderName,
-        'expMonth': expMonth,
-        'expYear': expYear,
+        'expMonth': normalizedExpMonth,
+        'expYear': normalizedExpYear,
       }),
     );
     if (!await _isSuccess(response)) {
@@ -721,6 +739,7 @@ class ApiService {
     required List<Map<String, dynamic>> items,
     required String description,
     int quantity = 1,
+    String? cartItemId,
   }) async {
     final token = await _requireToken();
     final response = await http.post(
@@ -733,6 +752,8 @@ class ApiService {
         'items': items,
         'description': description,
         'quantity': quantity,
+        if (cartItemId != null && cartItemId.isNotEmpty)
+          'cartItemId': cartItemId,
       }),
     );
     if (!await _isSuccess(response)) {
@@ -793,6 +814,7 @@ class ApiService {
     required int deliveryPrice,
     Map<String, dynamic>? pickupStore,
     String? deliveryAddress,
+    required String paymentMethodId,
   }) async {
     final token = await _requireToken();
     final payload = items
@@ -814,6 +836,7 @@ class ApiService {
         'deliveryPrice': deliveryPrice,
         'pickupStore': pickupStore,
         'deliveryAddress': deliveryAddress,
+        'paymentMethodId': paymentMethodId,
       }),
     );
     if (await _isSuccess(response)) {

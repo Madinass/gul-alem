@@ -36,6 +36,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
   bool _loading = true;
   List<dynamic> _methods = [];
   String? _selectedId;
+  final Set<String> _deletingMethodIds = {};
   bool _processing = false;
   DeliveryMethod _deliveryMethod = DeliveryMethod.pickup;
   PickupStore? _selectedPickupStore;
@@ -69,16 +70,62 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
     try {
       final data = await ApiService.fetchPaymentMethods();
       if (!mounted) return;
+      final currentSelectedId = _selectedId;
+      String? methodId(dynamic method) => method['id']?.toString();
       setState(() {
         _methods = data;
-        if (_methods.isNotEmpty) {
-          _selectedId = _methods.first['id'];
-        }
+        final hasCurrentSelection = _methods.any(
+          (method) => methodId(method) == currentSelectedId,
+        );
+        _selectedId = hasCurrentSelection
+            ? currentSelectedId
+            : (_methods.isEmpty ? null : methodId(_methods.first));
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _deleteMethod(dynamic method) async {
+    final t = context.t;
+    final id = method['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.deleteCardTitle),
+        content: Text(t.deleteCardQuestion),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(t.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    setState(() => _deletingMethodIds.add(id));
+    try {
+      await ApiService.deletePaymentMethod(id);
+      await _loadMethods();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.deletePaymentMethodFailed)));
+    } finally {
+      if (mounted) {
+        setState(() => _deletingMethodIds.remove(id));
+      }
     }
   }
 
@@ -155,7 +202,8 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
       messenger.showSnackBar(SnackBar(content: Text(t.addPaymentMethodFirst)));
       return;
     }
-    if (_selectedId == null) {
+    final selectedPaymentMethodId = _selectedId;
+    if (selectedPaymentMethodId == null || selectedPaymentMethodId.isEmpty) {
       messenger.showSnackBar(SnackBar(content: Text(t.choosePaymentMethod)));
       return;
     }
@@ -174,15 +222,11 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
         deliveryAddress: _deliveryMethod == DeliveryMethod.courier
             ? deliveryAddress
             : null,
+        paymentMethodId: selectedPaymentMethodId,
       );
       if (_deliveryMethod == DeliveryMethod.courier) {
         await ApiService.rememberDeliveryAddress(deliveryAddress);
       }
-      await ApiService.createNotification(
-        title: t.paymentSuccessTitle,
-        message: t.orderAccepted,
-        type: 'payment',
-      );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
@@ -564,13 +608,14 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
   }
 
   Widget _paymentMethodTile(AppText t, dynamic method) {
-    final id = method['id'];
+    final id = method['id']?.toString() ?? '';
     final last4 = method['last4'] ?? '';
     final selected = _selectedId == id;
+    final deleting = _deletingMethodIds.contains(id);
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => setState(() => _selectedId = id),
+      onTap: deleting ? null : () => setState(() => _selectedId = id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
@@ -593,6 +638,19 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
             const Icon(Icons.credit_card, color: Colors.black54),
             const SizedBox(width: 12),
             Expanded(child: Text(t.paymentCardEnding(last4))),
+            const SizedBox(width: 8),
+            if (deleting)
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              IconButton(
+                tooltip: t.delete,
+                icon: const Icon(Icons.delete_outline, color: Colors.black54),
+                onPressed: () => _deleteMethod(method),
+              ),
           ],
         ),
       ),

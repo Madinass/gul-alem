@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_language.dart';
 import 'admin_products_screen.dart';
@@ -7,6 +8,7 @@ import 'admin_emails_screen.dart';
 import 'admin_custom_items_screen.dart';
 import 'login_screen.dart';
 import 'order_model.dart';
+import 'payment_card_input.dart';
 import 'services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -130,11 +132,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final numberController = TextEditingController(
       text: existing?['maskedCardNumber'] ?? '',
     );
-    final expMonthController = TextEditingController(
-      text: existing?['expMonth'] ?? '',
-    );
-    final expYearController = TextEditingController(
-      text: existing?['expYear'] ?? '',
+    final expiryController = TextEditingController(
+      text: formatPaymentExpiry(
+        existing?['expMonth']?.toString(),
+        existing?['expYear']?.toString(),
+      ),
     );
     final cvvController = TextEditingController(text: existing?['cvv'] ?? '');
 
@@ -169,7 +171,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildTextField(t.cardholderName, nameController),
+              _buildTextField(
+                t.cardholderName,
+                nameController,
+                hintText: t.cardholderNameHint,
+                prefixIcon: Icons.person_outline,
+                textCapitalization: TextCapitalization.characters,
+                autofillHints: const [AutofillHints.creditCardName],
+              ),
               const SizedBox(height: 12),
               if (isEdit)
                 Container(
@@ -194,36 +203,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   t.cardNumber,
                   numberController,
                   keyboardType: TextInputType.number,
+                  hintText: '1234 5678 9012 3456',
+                  prefixIcon: Icons.credit_card,
+                  inputFormatters: const [CardNumberInputFormatter()],
+                  autofillHints: const [AutofillHints.creditCardNumber],
                 ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: _buildTextField(
-                      t.expMonth,
-                      expMonthController,
+                      t.expiryDate,
+                      expiryController,
                       keyboardType: TextInputType.number,
+                      hintText: '08/28',
+                      prefixIcon: Icons.calendar_today_outlined,
+                      inputFormatters: const [ExpiryDateInputFormatter()],
+                      autofillHints: const [
+                        AutofillHints.creditCardExpirationDate,
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(
-                      t.expYear,
-                      expYearController,
-                      keyboardType: TextInputType.number,
+                  if (!isEdit) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildTextField(
+                        t.cvv,
+                        cvvController,
+                        keyboardType: TextInputType.number,
+                        obscure: true,
+                        hintText: '123',
+                        prefixIcon: Icons.lock_outline,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
+                        ],
+                        autofillHints: const [
+                          AutofillHints.creditCardSecurityCode,
+                        ],
+                        textInputAction: TextInputAction.done,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
-              if (!isEdit) ...[
-                const SizedBox(height: 12),
-                _buildTextField(
-                  'CVV',
-                  cvvController,
-                  keyboardType: TextInputType.number,
-                  obscure: true,
-                ),
-              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -237,14 +260,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   onPressed: () async {
                     final name = nameController.text.trim();
-                    final number = numberController.text.trim();
-                    final expMonth = expMonthController.text.trim();
-                    final expYear = expYearController.text.trim();
-                    final cvv = cvvController.text.trim();
+                    final number = paymentCardDigits(numberController.text);
+                    final expiry = parsePaymentExpiry(expiryController.text);
+                    final cvv = paymentCardDigits(cvvController.text);
                     if (name.isEmpty ||
-                        expMonth.isEmpty ||
-                        expYear.isEmpty ||
-                        (!isEdit && (number.isEmpty || cvv.isEmpty))) {
+                        expiry == null ||
+                        (!isEdit &&
+                            (number.length < 12 ||
+                                cvv.length < 3 ||
+                                cvv.length > 4))) {
                       _showSnack(t.fillAllFields);
                       return;
                     }
@@ -253,15 +277,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         await ApiService.updatePaymentMethod(
                           id: methodId,
                           cardholderName: name,
-                          expMonth: expMonth,
-                          expYear: expYear,
+                          expMonth: expiry.month,
+                          expYear: expiry.year,
                         );
                       } else {
                         await ApiService.createPaymentMethod(
                           cardholderName: name,
                           cardNumber: number,
-                          expMonth: expMonth,
-                          expYear: expYear,
+                          expMonth: expiry.month,
+                          expYear: expiry.year,
                           cvv: cvv,
                         );
                       }
@@ -306,13 +330,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     TextEditingController controller, {
     TextInputType keyboardType = TextInputType.text,
     bool obscure = false,
+    String? hintText,
+    IconData? prefixIcon,
+    List<TextInputFormatter>? inputFormatters,
+    Iterable<String>? autofillHints,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    TextInputAction textInputAction = TextInputAction.next,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscure,
+      inputFormatters: inputFormatters,
+      autofillHints: autofillHints,
+      textCapitalization: textCapitalization,
+      textInputAction: textInputAction,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
+        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
         filled: true,
         fillColor: const Color(0xFFFFF6F8),
         border: OutlineInputBorder(
@@ -354,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 border: Border.all(color: lightPink),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),
@@ -483,7 +519,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 border: Border.all(color: lightPink),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),
@@ -577,7 +613,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             border: Border.all(color: lightPink),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
@@ -800,7 +836,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           border: Border.all(color: const Color(0xFFFFE6EB)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 6,
               offset: const Offset(0, 3),
             ),

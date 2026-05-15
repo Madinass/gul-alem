@@ -78,12 +78,15 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   static const _advisorTitle = 'ЖИ кеңесші';
   static const _newChatTitle = 'Жаңа чат';
+  static const _advisorTitles = {'ЖИ кеңесші', 'ИИ-консультант', 'AI advisor'};
+  static const _newChatTitles = {'Жаңа чат', 'Новый чат', 'New chat'};
 
   final TextEditingController _messageController = TextEditingController();
   final List<ChatMessage> _messages = [];
   List<ChatSession> _sessions = [];
   String? _activeSessionId;
   String _activeTitle = _advisorTitle;
+  bool _isDraftChatOpen = false;
   bool _isLoadingSessions = false;
   bool _isLoadingMessages = false;
   bool _isSending = false;
@@ -180,6 +183,7 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _activeSessionId = sessionId;
         _activeTitle = session?['title'] ?? _advisorTitle;
+        _isDraftChatOpen = false;
         _messages
           ..clear()
           ..addAll(items.map((item) => ChatMessage.fromJson(item)));
@@ -192,16 +196,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _startNewChat() async {
-    try {
-      final session = await ApiService.createChatSession();
-      if (!mounted) return;
-      setState(() {
-        _activeSessionId = session['id'];
-        _activeTitle = session['title'] ?? _advisorTitle;
-        _messages.clear();
-      });
-      await _loadSessions();
-    } catch (_) {}
+    setState(() {
+      _activeSessionId = null;
+      _activeTitle = _newChatTitle;
+      _isDraftChatOpen = true;
+      _messages.clear();
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -216,23 +216,17 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       String? sessionId = _activeSessionId;
-      if (sessionId == null) {
-        final session = await ApiService.createChatSession();
-        sessionId = session['id'];
-        if (!mounted) return;
-        setState(() {
-          _activeSessionId = sessionId;
-          _activeTitle = session['title'] ?? _advisorTitle;
-        });
-      }
-
       final reply = await ApiService.sendChatMessage(
         userText,
         sessionId: sessionId,
       );
       if (!mounted) return;
+      sessionId = reply['sessionId']?.toString() ?? sessionId;
       final suggestedProducts = ChatMessage.productsFromJson(reply['products']);
       setState(() {
+        _activeSessionId = sessionId;
+        _activeTitle = reply['title'] ?? _activeTitle;
+        _isDraftChatOpen = false;
         _messages.add(
           ChatMessage(
             role: 'assistant',
@@ -259,6 +253,7 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _activeSessionId = null;
       _activeTitle = _advisorTitle;
+      _isDraftChatOpen = false;
       _messages.clear();
     });
     _loadSessions();
@@ -273,6 +268,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (_activeSessionId == session.id) {
           _activeSessionId = null;
           _activeTitle = _advisorTitle;
+          _isDraftChatOpen = false;
           _messages.clear();
         }
       });
@@ -280,15 +276,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _localizedTitle(AppText t, String title) {
-    if (title == _advisorTitle) return t.aiAdvisor;
-    if (title == _newChatTitle) return t.newChat;
+    if (_advisorTitles.contains(title)) return t.aiAdvisor;
+    if (_newChatTitles.contains(title)) return t.newChat;
     return title;
   }
 
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final isChatOpen = _activeSessionId != null;
+    final isChatOpen = _activeSessionId != null || _isDraftChatOpen;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
