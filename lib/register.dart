@@ -227,15 +227,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     const SizedBox(height: 10),
                     SizedBox(
-                      width: 140,
-                      height: 140,
+                      width: 100,
+                      height: 100,
                       child: Image.asset(
                         'assets/icon_profile.png',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(
                               Icons.person,
-                              size: 100,
+                              size: 72,
                               color: Color(0xFFE91E63),
                             ),
                       ),

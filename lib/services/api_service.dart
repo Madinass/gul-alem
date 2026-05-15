@@ -511,7 +511,7 @@ class ApiService {
       body: jsonEncode({'popular': popular}),
     );
     if (!await _isSuccess(response)) {
-      throw Exception('Танымалдықты жаңарту сәтсіз');
+      throw Exception('Сұраныстағы күйін жаңарту сәтсіз');
     }
   }
 

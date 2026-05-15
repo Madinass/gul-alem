@@ -26,7 +26,7 @@ class _MainWrapperState extends State<MainWrapper> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
-      const BasBetScreen(),
+      BasBetScreen(onOpenCatalog: () => setState(() => _selectedIndex = 1)),
       const CatalogScreen(),
       const FavoritesScreen(),
       const CartScreen(),

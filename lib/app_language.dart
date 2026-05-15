@@ -216,7 +216,7 @@ class AppText {
     en: 'Clear photo search',
   );
   String get popularFlowers =>
-      pick(kz: 'Танымал гүлдер', ru: 'Популярные цветы', en: 'Popular flowers');
+      pick(kz: 'Сұраныстағы гүлдер', ru: 'Популярные цветы', en: 'Popular flowers');
   String get recommendedForYou => pick(
     kz: 'Сізге арналған ұсыныстар',
     ru: 'Рекомендации для вас',
@@ -566,7 +566,7 @@ class AppText {
   String get stockCount =>
       pick(kz: 'Қойма саны', ru: 'Количество на складе', en: 'Stock count');
   String get category => pick(kz: 'Санат', ru: 'Категория', en: 'Category');
-  String get popular => pick(kz: 'Танымал', ru: 'Популярный', en: 'Popular');
+  String get popular => pick(kz: 'Сұраныста', ru: 'Популярный', en: 'Popular');
   String get sortOrder => pick(kz: 'Реті', ru: 'Порядок', en: 'Order');
   String get customItems => pick(
     kz: 'Жеке букет бөліктері',
@@ -1293,7 +1293,7 @@ const List<_LocaleValue> _apiErrorTexts = [
     en: 'Could not update stock',
   ),
   _LocaleValue(
-    kz: 'Танымалдықты жаңарту сәтсіз',
+    kz: 'Сұраныстағы күйін жаңарту сәтсіз',
     ru: 'Не удалось обновить популярность',
     en: 'Could not update popularity',
   ),

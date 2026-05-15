@@ -11,7 +11,9 @@ import 'app_language.dart';
 import 'widgets/product_card.dart';
 
 class BasBetScreen extends StatefulWidget {
-  const BasBetScreen({super.key});
+  final VoidCallback? onOpenCatalog;
+
+  const BasBetScreen({super.key, this.onOpenCatalog});
 
   @override
   State<BasBetScreen> createState() => _BasBetScreenState();
@@ -530,7 +532,11 @@ class _BasBetScreenState extends State<BasBetScreen>
     );
   }
 
-  Widget _buildSectionHeader(String title, {bool showMore = false}) {
+  Widget _buildSectionHeader(
+    String title, {
+    bool showMore = false,
+    VoidCallback? onMorePressed,
+  }) {
     final t = context.t;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -546,9 +552,18 @@ class _BasBetScreenState extends State<BasBetScreen>
             ),
           ),
           if (showMore)
-            Text(
-              t.more,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
+            TextButton(
+              onPressed: onMorePressed,
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                t.more,
+                style: const TextStyle(fontSize: 14),
+              ),
             ),
         ],
       ),
@@ -556,7 +571,11 @@ class _BasBetScreenState extends State<BasBetScreen>
   }
 
   Widget _buildPopularHeader() {
-    return _buildSectionHeader(context.t.popularFlowers, showMore: true);
+    return _buildSectionHeader(
+      context.t.popularFlowers,
+      showMore: true,
+      onMorePressed: widget.onOpenCatalog,
+    );
   }
 
   Widget _buildPopularList() {
