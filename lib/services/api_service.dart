@@ -19,6 +19,15 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
+class ApiException implements Exception {
+  final String message;
+
+  const ApiException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   static final String baseUrl = backend_config.baseUrl;
   static const String _deliveryAddressPrefsPrefix =
@@ -49,6 +58,17 @@ class ApiService {
       await clearSession();
     }
     return response.statusCode >= 200 && response.statusCode < 300;
+  }
+
+  static String _responseMessage(http.Response response, String fallback) {
+    try {
+      final data = jsonDecode(response.body);
+      final message = data is Map<String, dynamic> ? data['message'] : null;
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+    } catch (_) {}
+    return fallback;
   }
 
   static String _normalizeExpiryMonth(String value) {
@@ -146,7 +166,7 @@ class ApiService {
     if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
-    throw Exception('Кіру сәтсіз');
+    throw ApiException(_responseMessage(response, 'Кіру сәтсіз'));
   }
 
   static Future<Map<String, dynamic>> register({
@@ -168,7 +188,7 @@ class ApiService {
     if (await _isSuccess(response)) {
       return jsonDecode(response.body);
     }
-    throw Exception('Тіркелу сәтсіз');
+    throw ApiException(_responseMessage(response, 'Тіркелу сәтсіз'));
   }
 
   static Future<void> requestPasswordReset(String email) async {
@@ -178,7 +198,7 @@ class ApiService {
       body: jsonEncode({'email': email}),
     );
     if (!await _isSuccess(response)) {
-      throw Exception('Reset code send failed');
+      throw ApiException(_responseMessage(response, 'Reset code send failed'));
     }
   }
 
@@ -192,7 +212,7 @@ class ApiService {
       final data = jsonDecode(response.body);
       return data['resetToken'] ?? '';
     }
-    throw Exception('Code verification failed');
+    throw ApiException(_responseMessage(response, 'Code verification failed'));
   }
 
   static Future<void> resetPassword({
@@ -210,7 +230,7 @@ class ApiService {
       }),
     );
     if (!await _isSuccess(response)) {
-      throw Exception('Password reset failed');
+      throw ApiException(_responseMessage(response, 'Password reset failed'));
     }
   }
 
@@ -636,21 +656,30 @@ class ApiService {
     required String cardholderName,
     required String expMonth,
     required String expYear,
+    String? cardNumber,
+    String? cvv,
   }) async {
     final token = await _requireToken();
     final normalizedExpMonth = _normalizeExpiryMonth(expMonth);
     final normalizedExpYear = _normalizeExpiryYear(expYear);
+    final payload = {
+      'cardholderName': cardholderName,
+      'expMonth': normalizedExpMonth,
+      'expYear': normalizedExpYear,
+    };
+    if (cardNumber != null && cardNumber.isNotEmpty) {
+      payload['cardNumber'] = cardNumber;
+    }
+    if (cvv != null && cvv.isNotEmpty) {
+      payload['cvv'] = cvv;
+    }
     final response = await http.put(
       Uri.parse('$baseUrl/payment-methods/$id'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'cardholderName': cardholderName,
-        'expMonth': normalizedExpMonth,
-        'expYear': normalizedExpYear,
-      }),
+      body: jsonEncode(payload),
     );
     if (!await _isSuccess(response)) {
       throw Exception('Төлем әдісін жаңарту сәтсіз');

@@ -1163,9 +1163,44 @@ const List<_LocaleValue> _apiErrorTexts = [
     en: 'Registration failed',
   ),
   _LocaleValue(
+    kz: 'Бұл пайдаланушы бұрыннан бар',
+    ru: 'Пользователь уже существует',
+    en: 'User already exists',
+  ),
+  _LocaleValue(
+    kz: 'Аты-жөні дұрыс емес',
+    ru: 'Некорректное имя',
+    en: 'Invalid full name',
+  ),
+  _LocaleValue(
+    kz: 'Телефон нөмірі дұрыс емес',
+    ru: 'Некорректный телефон',
+    en: 'Invalid phone number',
+  ),
+  _LocaleValue(
+    kz: 'Email дұрыс емес',
+    ru: 'Некорректный email',
+    en: 'Invalid email',
+  ),
+  _LocaleValue(
+    kz: 'Құпиясөз талаптарға сәйкес емес',
+    ru: 'Пароль не соответствует требованиям',
+    en: 'Password does not meet requirements',
+  ),
+  _LocaleValue(
+    kz: 'Қажетті өрістер толтырылмады',
+    ru: 'Заполнены не все обязательные поля',
+    en: 'Missing required fields',
+  ),
+  _LocaleValue(
     kz: 'Қалпына келтіру кодын жіберу сәтсіз',
     ru: 'Не удалось отправить код восстановления',
     en: 'Reset code send failed',
+  ),
+  _LocaleValue(
+    kz: 'Қалпына келтіру кодын жіберу сәтсіз',
+    ru: 'Не удалось отправить код восстановления',
+    en: 'Failed to send reset code',
   ),
   _LocaleValue(
     kz: 'Кодты тексеру сәтсіз',

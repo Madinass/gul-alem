@@ -8,7 +8,7 @@ void main() {
       expect(result, isNotNull);
     });
 
-    test('no capital letter', () {
+    test('no special character', () {
       final result = RegisterValidator.validatePassword(
         'password1',
         'password1',
@@ -31,8 +31,8 @@ void main() {
 
     test('valid password', () {
       final result = RegisterValidator.validatePassword(
-        'Password1',
-        'Password1',
+        'Password1!',
+        'Password1!',
       );
       expect(result, isNull);
     });

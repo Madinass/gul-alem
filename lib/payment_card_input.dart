@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+final RegExp _cardholderNameAllowedPattern = RegExp(r"[A-Z' ]");
+
 class PaymentExpiry {
   final String month;
   final String year;
@@ -9,6 +11,48 @@ class PaymentExpiry {
 
 String paymentCardDigits(String value) {
   return value.replaceAll(RegExp(r'\D'), '');
+}
+
+String formatCardholderName(String value) {
+  final upperText = value.toUpperCase();
+  final buffer = StringBuffer();
+  for (var i = 0; i < upperText.length; i += 1) {
+    final character = upperText[i];
+    if (_cardholderNameAllowedPattern.hasMatch(character)) {
+      buffer.write(character);
+    }
+  }
+  return buffer.toString();
+}
+
+class CardholderNameInputFormatter extends TextInputFormatter {
+  const CardholderNameInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final upperText = newValue.text.toUpperCase();
+    final buffer = StringBuffer();
+    var selectionOffset = 0;
+
+    for (var i = 0; i < upperText.length; i += 1) {
+      final character = upperText[i];
+      if (!_cardholderNameAllowedPattern.hasMatch(character)) continue;
+      buffer.write(character);
+      if (i < newValue.selection.end) {
+        selectionOffset += 1;
+      }
+    }
+
+    final text = buffer.toString();
+    selectionOffset = selectionOffset.clamp(0, text.length).toInt();
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: selectionOffset),
+    );
+  }
 }
 
 String formatPaymentExpiry(String? month, String? year) {

@@ -124,7 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t.serverConnectionErrorWith(e)),
+          content: Text(t.localizedErrorMessage(e)),
           backgroundColor: Colors.red,
         ),
       );

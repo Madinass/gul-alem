@@ -135,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = t.genericTryAgain;
+        _errorMessage = t.localizedErrorMessage(error);
       });
     } finally {
       if (mounted) {

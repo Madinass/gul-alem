@@ -127,11 +127,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final nameController = TextEditingController(
-      text: existing?['cardholderName'] ?? '',
+      text: formatCardholderName(existing?['cardholderName']?.toString() ?? ''),
     );
-    final numberController = TextEditingController(
-      text: existing?['maskedCardNumber'] ?? '',
-    );
+    final maskedCardNumber = existing?['maskedCardNumber']?.toString() ?? '';
+    final numberController = TextEditingController();
     final expiryController = TextEditingController(
       text: formatPaymentExpiry(
         existing?['expMonth']?.toString(),
@@ -152,79 +151,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       builder: (sheetContext) {
         final viewInsets = MediaQuery.of(sheetContext).viewInsets;
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEdit ? t.updateCard : t.addCard,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        return SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: viewInsets.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEdit ? t.updateCard : t.addCard,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                t.cardholderName,
-                nameController,
-                hintText: t.cardholderNameHint,
-                prefixIcon: Icons.person_outline,
-                textCapitalization: TextCapitalization.characters,
-                autofillHints: const [AutofillHints.creditCardName],
-              ),
-              const SizedBox(height: 12),
-              if (isEdit)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF6F8),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    numberController.text.isEmpty
-                        ? '****'
-                        : numberController.text,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                )
-              else
+                const SizedBox(height: 16),
+                _buildTextField(
+                  t.cardholderName,
+                  nameController,
+                  hintText: t.cardholderNameHint,
+                  prefixIcon: Icons.person_outline,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: const [CardholderNameInputFormatter()],
+                  autofillHints: const [AutofillHints.creditCardName],
+                ),
+                const SizedBox(height: 12),
                 _buildTextField(
                   t.cardNumber,
                   numberController,
                   keyboardType: TextInputType.number,
-                  hintText: '1234 5678 9012 3456',
+                  hintText: isEdit && maskedCardNumber.isNotEmpty
+                      ? maskedCardNumber
+                      : '1234 5678 9012 3456',
                   prefixIcon: Icons.credit_card,
                   inputFormatters: const [CardNumberInputFormatter()],
                   autofillHints: const [AutofillHints.creditCardNumber],
                 ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      t.expiryDate,
-                      expiryController,
-                      keyboardType: TextInputType.number,
-                      hintText: '08/28',
-                      prefixIcon: Icons.calendar_today_outlined,
-                      inputFormatters: const [ExpiryDateInputFormatter()],
-                      autofillHints: const [
-                        AutofillHints.creditCardExpirationDate,
-                      ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        t.expiryDate,
+                        expiryController,
+                        keyboardType: TextInputType.number,
+                        hintText: '08/28',
+                        prefixIcon: Icons.calendar_today_outlined,
+                        inputFormatters: const [ExpiryDateInputFormatter()],
+                        autofillHints: const [
+                          AutofillHints.creditCardExpirationDate,
+                        ],
+                      ),
                     ),
-                  ),
-                  if (!isEdit) ...[
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildTextField(
@@ -245,80 +228,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ],
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkPink,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: darkPink,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final name = formatCardholderName(
+                        nameController.text,
+                      ).trim();
+                      final number = paymentCardDigits(numberController.text);
+                      final expiry = parsePaymentExpiry(expiryController.text);
+                      final cvv = paymentCardDigits(cvvController.text);
+                      final shouldUpdateCardDigits =
+                          !isEdit || number.isNotEmpty || cvv.isNotEmpty;
+                      if (name.isEmpty ||
+                          expiry == null ||
+                          (shouldUpdateCardDigits &&
+                              (number.length < 12 ||
+                                  cvv.length < 3 ||
+                                  cvv.length > 4))) {
+                        _showSnack(t.fillAllFields);
+                        return;
+                      }
+                      try {
+                        if (isEdit) {
+                          await ApiService.updatePaymentMethod(
+                            id: methodId,
+                            cardholderName: name,
+                            expMonth: expiry.month,
+                            expYear: expiry.year,
+                            cardNumber: shouldUpdateCardDigits ? number : null,
+                            cvv: shouldUpdateCardDigits ? cvv : null,
+                          );
+                        } else {
+                          await ApiService.createPaymentMethod(
+                            cardholderName: name,
+                            cardNumber: number,
+                            expMonth: expiry.month,
+                            expYear: expiry.year,
+                            cvv: cvv,
+                          );
+                        }
+                        if (!sheetContext.mounted) return;
+                        Navigator.of(sheetContext).pop();
+                        await _loadPaymentMethods();
+                      } catch (error) {
+                        if (!mounted) return;
+                        _showSnack(t.savePaymentMethodFailed);
+                      }
+                    },
+                    child: Text(
+                      isEdit ? t.update : t.save,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
-                  onPressed: () async {
-                    final name = nameController.text.trim();
-                    final number = paymentCardDigits(numberController.text);
-                    final expiry = parsePaymentExpiry(expiryController.text);
-                    final cvv = paymentCardDigits(cvvController.text);
-                    if (name.isEmpty ||
-                        expiry == null ||
-                        (!isEdit &&
-                            (number.length < 12 ||
-                                cvv.length < 3 ||
-                                cvv.length > 4))) {
-                      _showSnack(t.fillAllFields);
-                      return;
-                    }
-                    try {
-                      if (isEdit) {
-                        await ApiService.updatePaymentMethod(
-                          id: methodId,
-                          cardholderName: name,
-                          expMonth: expiry.month,
-                          expYear: expiry.year,
-                        );
-                      } else {
-                        await ApiService.createPaymentMethod(
-                          cardholderName: name,
-                          cardNumber: number,
-                          expMonth: expiry.month,
-                          expYear: expiry.year,
-                          cvv: cvv,
-                        );
-                      }
-                      if (!sheetContext.mounted) return;
-                      Navigator.of(sheetContext).pop();
-                      await _loadPaymentMethods();
-                    } catch (error) {
-                      if (!mounted) return;
-                      _showSnack(t.savePaymentMethodFailed);
-                    }
-                  },
-                  child: Text(
-                    isEdit ? t.update : t.save,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: lightPink),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: Text(
+                      t.cancel,
+                      style: const TextStyle(color: Colors.black87),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: lightPink),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(),
-                  child: Text(
-                    t.cancel,
-                    style: const TextStyle(color: Colors.black87),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

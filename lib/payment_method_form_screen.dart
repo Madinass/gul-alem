@@ -30,7 +30,7 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
 
   Future<void> _save() async {
     final t = context.t;
-    final name = _nameController.text.trim();
+    final name = formatCardholderName(_nameController.text).trim();
     final number = paymentCardDigits(_numberController.text);
     final expiry = parsePaymentExpiry(_expiryController.text);
     final cvv = paymentCardDigits(_cvvController.text);
@@ -136,6 +136,7 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
               textCapitalization: TextCapitalization.characters,
               hintText: t.cardholderNameHint,
               prefixIcon: Icons.person_outline,
+              inputFormatters: const [CardholderNameInputFormatter()],
               autofillHints: const [AutofillHints.creditCardName],
             ),
             const SizedBox(height: 12),

@@ -30,14 +30,14 @@ class RegisterValidator {
   }
 
   static String? validatePassword(String password, String confirmPassword) {
-    if (password.length < 8) {
-      return "Құпия сөз кемінде 8 таңбадан тұруы керек.";
+    if (password.length < 8 || password.length > 64) {
+      return "Құпия сөз 8-64 таңба аралығында болуы керек.";
     }
-    if (!RegExp(r'[A-Z]').hasMatch(password)) {
-      return "Құпия сөз кемінде бір бас әріптен (А-Я) тұруы керек.";
-    }
-    if (!RegExp(r'[0-9]').hasMatch(password)) {
+    if (!RegExp(r'\d').hasMatch(password)) {
       return "Құпия сөз кемінде бір саннан (0-9) тұруы керек.";
+    }
+    if (!RegExp(r'[^\w\s]').hasMatch(password)) {
+      return "Құпия сөзде кемінде бір арнайы таңба болуы керек.";
     }
     if (password != confirmPassword) {
       return "Құпия сөздер сәйкес келмейді!";
