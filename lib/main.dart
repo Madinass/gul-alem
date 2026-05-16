@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'app_language.dart';
 import 'home_screen.dart';
 import 'main_wrapper.dart';
@@ -7,6 +8,7 @@ import 'services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final hasSession = await ApiService.hasValidSession();
   final languageController = AppLanguageController();
   await languageController.load();

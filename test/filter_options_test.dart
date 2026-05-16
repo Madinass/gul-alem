@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:madina/filter_options.dart';
+import 'package:gul_alem/filter_options.dart';
 
 void main() {
   group('labelForFilterOption', () {

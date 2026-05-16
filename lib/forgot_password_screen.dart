@@ -22,6 +22,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? _resetToken;
   bool _isSubmitting = false;
   String? _errorMessage;
+  bool _isNewPasswordObscured = true;
+  bool _isConfirmPasswordObscured = true;
 
   @override
   void dispose() {
@@ -210,7 +212,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
             hintText: t.emailAddress,
-            errorText: _errorMessage,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -218,6 +219,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
         ),
+        _buildErrorMessage(),
         const SizedBox(height: 30),
         _buildActionButton(t.sendCode, Icons.send),
       ],
@@ -245,7 +247,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           maxLength: 6,
           decoration: InputDecoration(
             hintText: t.code,
-            errorText: _errorMessage,
             counterText: '',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
@@ -254,6 +255,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
         ),
+        _buildErrorMessage(),
         const SizedBox(height: 30),
         _buildActionButton(t.verifyCode, Icons.check_circle_outline),
       ],
@@ -272,11 +274,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 20),
         TextField(
           controller: _passwordController,
-          obscureText: true,
+          obscureText: _isNewPasswordObscured,
           decoration: InputDecoration(
             hintText: t.newPasswordTitle,
-            errorText: _errorMessage,
             prefixIcon: const Icon(Icons.lock_outline, color: Colors.pink),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isNewPasswordObscured ? Icons.visibility_off : Icons.visibility,
+                color: Colors.pink,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isNewPasswordObscured = !_isNewPasswordObscured;
+                });
+              },
+            ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -287,10 +299,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 16),
         TextField(
           controller: _confirmPasswordController,
-          obscureText: true,
+          obscureText: _isConfirmPasswordObscured,
           decoration: InputDecoration(
             hintText: t.confirmPassword,
             prefixIcon: const Icon(Icons.lock_reset, color: Colors.pink),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isConfirmPasswordObscured
+                    ? Icons.visibility_off
+                    : Icons.visibility,
+                color: Colors.pink,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isConfirmPasswordObscured = !_isConfirmPasswordObscured;
+                });
+              },
+            ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -298,9 +323,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
         ),
+        _buildErrorMessage(),
         const SizedBox(height: 30),
         _buildActionButton(t.changePassword, Icons.key_sharp),
       ],
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    final message = _errorMessage?.trim();
+    if (message == null || message.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEBEE),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE57373)),
+        ),
+        child: Text(
+          message,
+          style: const TextStyle(
+            color: Color(0xFFC62828),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 

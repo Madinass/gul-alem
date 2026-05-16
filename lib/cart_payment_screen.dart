@@ -422,7 +422,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.madina',
+                  userAgentPackageName: 'com.gulalem.app',
                 ),
                 MarkerLayer(markers: _mapMarkers()),
                 RichAttributionWidget(

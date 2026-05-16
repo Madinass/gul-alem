@@ -1020,9 +1020,9 @@ class AppText {
 
   String localizedErrorMessage(Object errorValue) {
     final raw = errorValue.toString();
-    final message = raw.startsWith('Exception: ')
-        ? raw.substring('Exception: '.length)
-        : raw;
+    final message = raw
+        .replaceFirst(RegExp(r'^(Exception|ApiException):\s*'), '')
+        .trim();
     if (message.startsWith('Image upload failed')) {
       return pick(
         kz: 'Суретті жүктеу сәтсіз',
@@ -1030,7 +1030,8 @@ class AppText {
         en: 'Image upload failed',
       );
     }
-    return _translateLocaleValue(message, _apiErrorTexts);
+    final localized = _translateLocaleValue(message, _apiErrorTexts);
+    return localized == message && message.isNotEmpty ? message : localized;
   }
 
   String statusLabel(String statusValue) {

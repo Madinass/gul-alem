@@ -1,11 +1,11 @@
 {
-    "name": "madina",
-    "short_name": "madina",
+    "name": "Gul alem",
+    "short_name": "Gul alem",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Gul alem flower shop.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:madina/register_validator.dart';
+import 'package:gul_alem/register_validator.dart';
 
 void main() {
   group('Register password validation', () {
