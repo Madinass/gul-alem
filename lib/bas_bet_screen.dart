@@ -771,8 +771,8 @@ class _BasBetScreenState extends State<BasBetScreen>
       ),
       _infoCard(
         t.qualityGuarantee,
-        'assets/about_us_new.png',
-        alignment: const Alignment(0, -0.35),
+        'assets/about_us_new.jpeg',
+        alignment: const Alignment(0, 0.15),
       ),
     ];
   }
