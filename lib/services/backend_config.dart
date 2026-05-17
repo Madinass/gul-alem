@@ -1,4 +1,4 @@
-const String _defaultBaseUrl = 'https://serverflowers.onrender.com';
+const String _defaultBaseUrl = 'https://gul-alem.onrender.com';
 
 const String _configuredBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
