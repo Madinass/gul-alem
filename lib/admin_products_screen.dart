@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -49,6 +51,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   Future<void> _showEditor({Product? product}) async {
     final t = context.t;
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: product?.name ?? '');
     final priceController = TextEditingController(
       text: product?.price.toString() ?? '',
@@ -64,12 +67,45 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
     bool inStock = product?.inStock ?? true;
     bool popular = product?.popular ?? false;
-    String? categoryId =
-        product?.categoryId ??
-        (categories.isNotEmpty ? categories.first.id : null);
+    final categoryIds = categories.map((category) => category.id).toSet();
+    String? categoryId = product?.categoryId;
+    if (categoryId == null || !categoryIds.contains(categoryId)) {
+      categoryId = categories.isNotEmpty ? categories.first.id : null;
+    }
     XFile? selectedImageFile;
     bool saving = false;
     String? errorMessage;
+
+    String? requiredValidator(String? value) {
+      if (value == null || value.trim().isEmpty) {
+        return t.fillAllFields;
+      }
+      return null;
+    }
+
+    String? priceValidator(String? value) {
+      final number = int.tryParse(value?.trim() ?? '');
+      if (number == null || number <= 0) {
+        return t.fillAllFields;
+      }
+      return null;
+    }
+
+    String? stockValidator(String? value) {
+      final number = int.tryParse(value?.trim() ?? '');
+      if (number == null || number < 0) {
+        return t.fillAllFields;
+      }
+      return null;
+    }
+
+    String? imageValidator(String? value) {
+      if (selectedImageFile == null &&
+          (value == null || value.trim().isEmpty)) {
+        return t.fillAllFields;
+      }
+      return null;
+    }
 
     final result = await showDialog<bool>(
       context: context,
@@ -95,6 +131,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
             Future<void> saveProduct() async {
               if (saving) return;
+              if (!(formKey.currentState?.validate() ?? false)) {
+                return;
+              }
               setDialogState(() {
                 saving = true;
                 errorMessage = null;
@@ -120,13 +159,13 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 final updated = Product(
                   id: product?.id ?? '',
                   name: nameController.text.trim(),
-                  price: int.tryParse(priceController.text.trim()) ?? 0,
+                  price: int.parse(priceController.text.trim()),
                   imagePath: imagePath,
                   imageUrl: imageUrl,
                   flowerType: flowerController.text.trim(),
                   categoryId: categoryId,
                   inStock: inStock,
-                  stockCount: int.tryParse(stockController.text.trim()) ?? 0,
+                  stockCount: int.parse(stockController.text.trim()),
                   popular: popular,
                 );
 
@@ -147,138 +186,210 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               }
             }
 
+            final mediaQuery = MediaQuery.of(dialogContext);
+            final horizontalInset = mediaQuery.size.width < 480 ? 12.0 : 40.0;
+            final availableContentWidth = math.max(
+              0.0,
+              mediaQuery.size.width - horizontalInset * 2 - 48,
+            );
+            final contentWidth = math.min(availableContentWidth, 520.0);
+            final maxContentHeight = math.max(
+              260.0,
+              mediaQuery.size.height - mediaQuery.viewInsets.bottom - 220,
+            );
+
             return AlertDialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: horizontalInset,
+                vertical: 16,
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+              contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              actionsPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              actionsOverflowAlignment: OverflowBarAlignment.end,
+              actionsOverflowDirection: VerticalDirection.down,
               title: Text(product == null ? t.newProduct : t.editProduct),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 150,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.pink[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: selectedImageFile != null
-                          ? ClipRRect(
+              content: SizedBox(
+                width: contentWidth,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: maxContentHeight),
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            height: mediaQuery.size.width < 360 ? 120 : 150,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.pink[50],
                               borderRadius: BorderRadius.circular(12),
-                              child: FutureBuilder<Uint8List>(
-                                future: selectedImageFile!.readAsBytes(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  }
-                                  return Image.memory(
-                                    snapshot.data!,
-                                    fit: BoxFit.contain,
-                                  );
-                                },
-                              ),
-                            )
-                          : product != null && product.displayImage.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: ProductImage(
-                                product: product,
-                                fit: BoxFit.contain,
-                                width: double.infinity,
-                              ),
-                            )
-                          : Icon(Icons.image, color: darkPink, size: 48),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: saving ? null : pickImage,
-                      icon: const Icon(Icons.image_outlined),
-                      label: Text(t.chooseImage),
-                    ),
-                    TextField(
-                      controller: nameController,
-                      enabled: !saving,
-                      decoration: InputDecoration(labelText: t.name),
-                    ),
-                    TextField(
-                      controller: priceController,
-                      enabled: !saving,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(labelText: t.price),
-                    ),
-                    TextField(
-                      controller: imageController,
-                      enabled: !saving,
-                      decoration: InputDecoration(labelText: t.imagePath),
-                    ),
-                    TextField(
-                      controller: flowerController,
-                      enabled: !saving,
-                      decoration: InputDecoration(labelText: t.flowerType),
-                    ),
-                    TextField(
-                      controller: stockController,
-                      enabled: !saving,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(labelText: t.stockCount),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: categoryId,
-                      items: categories
-                          .map(
-                            (category) => DropdownMenuItem(
-                              value: category.id,
-                              child: Text(t.categoryName(category)),
                             ),
-                          )
-                          .toList(),
-                      onChanged: saving
-                          ? null
-                          : (value) => setDialogState(() => categoryId = value),
-                      decoration: InputDecoration(labelText: t.category),
-                    ),
-                    SwitchListTile(
-                      value: inStock,
-                      onChanged: saving
-                          ? null
-                          : (value) => setDialogState(() => inStock = value),
-                      title: Text(t.inStock),
-                    ),
-                    SwitchListTile(
-                      value: popular,
-                      onChanged: saving
-                          ? null
-                          : (value) => setDialogState(() => popular = value),
-                      title: Text(t.popular),
-                    ),
-                    if (saving)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: LinearProgressIndicator(color: darkPink),
+                            child: selectedImageFile != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: FutureBuilder<Uint8List>(
+                                      future: selectedImageFile!.readAsBytes(),
+                                      builder: (context, snapshot) {
+                                        if (!snapshot.hasData) {
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        }
+                                        return Image.memory(
+                                          snapshot.data!,
+                                          fit: BoxFit.contain,
+                                        );
+                                      },
+                                    ),
+                                  )
+                                : product != null &&
+                                      product.displayImage.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: ProductImage(
+                                      product: product,
+                                      fit: BoxFit.contain,
+                                      width: double.infinity,
+                                    ),
+                                  )
+                                : Icon(Icons.image, color: darkPink, size: 48),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: saving ? null : pickImage,
+                              icon: const Icon(Icons.image_outlined),
+                              label: Text(
+                                t.chooseImage,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          TextFormField(
+                            controller: nameController,
+                            enabled: !saving,
+                            textInputAction: TextInputAction.next,
+                            validator: requiredValidator,
+                            decoration: InputDecoration(labelText: t.name),
+                          ),
+                          TextFormField(
+                            controller: priceController,
+                            enabled: !saving,
+                            keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.next,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: priceValidator,
+                            decoration: InputDecoration(labelText: t.price),
+                          ),
+                          TextFormField(
+                            controller: imageController,
+                            enabled: !saving,
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.next,
+                            validator: imageValidator,
+                            decoration: InputDecoration(labelText: t.imagePath),
+                          ),
+                          TextFormField(
+                            controller: flowerController,
+                            enabled: !saving,
+                            textInputAction: TextInputAction.next,
+                            validator: requiredValidator,
+                            decoration: InputDecoration(
+                              labelText: t.flowerType,
+                            ),
+                          ),
+                          TextFormField(
+                            controller: stockController,
+                            enabled: !saving,
+                            keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.done,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: stockValidator,
+                            decoration: InputDecoration(
+                              labelText: t.stockCount,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<String>(
+                            initialValue: categoryId,
+                            isExpanded: true,
+                            items: categories
+                                .map(
+                                  (category) => DropdownMenuItem(
+                                    value: category.id,
+                                    child: Text(
+                                      t.categoryName(category),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: saving
+                                ? null
+                                : (value) =>
+                                      setDialogState(() => categoryId = value),
+                            decoration: InputDecoration(labelText: t.category),
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            value: inStock,
+                            onChanged: saving
+                                ? null
+                                : (value) =>
+                                      setDialogState(() => inStock = value),
+                            title: Text(t.inStock),
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            value: popular,
+                            onChanged: saving
+                                ? null
+                                : (value) =>
+                                      setDialogState(() => popular = value),
+                            title: Text(t.popular),
+                          ),
+                          if (saving)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: LinearProgressIndicator(color: darkPink),
+                            ),
+                          if (errorMessage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                errorMessage!,
+                                style: const TextStyle(color: Colors.redAccent),
+                              ),
+                            ),
+                        ],
                       ),
-                    if (errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-                  ],
+                    ),
+                  ),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: saving
                       ? null
-                      : () => Navigator.pop(context, false),
+                      : () => Navigator.pop(dialogContext, false),
                   child: Text(t.cancel),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: darkPink),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: darkPink,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: saving ? null : saveProduct,
                   child: saving
                       ? const SizedBox(
@@ -297,6 +408,12 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         );
       },
     );
+
+    nameController.dispose();
+    priceController.dispose();
+    imageController.dispose();
+    flowerController.dispose();
+    stockController.dispose();
 
     if (result == true) {
       await _loadData();
@@ -358,6 +475,132 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     }
   }
 
+  Widget _productCard(Product product, {required bool compact}) {
+    final t = context.t;
+    final actions = _productActions(product);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: ProductImage(
+                    product: product,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorWidget: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Icon(Icons.local_florist, color: darkPink),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.productName(product),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${t.priceValue(product.price)} | ${t.stock}: ${product.stockCount}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!compact) ...[const SizedBox(width: 8), actions],
+              ],
+            ),
+            if (compact) ...[
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: actions),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _productActions(Product product) {
+    final t = context.t;
+    final popularUpdating = _popularUpdating.contains(product.id);
+
+    return Wrap(
+      spacing: 2,
+      runSpacing: 2,
+      alignment: WrapAlignment.end,
+      children: [
+        _actionButton(
+          tooltip: t.popular,
+          onPressed: popularUpdating ? null : () => _togglePopular(product),
+          icon: popularUpdating
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  product.popular ? Icons.star : Icons.star_border,
+                  color: product.popular ? Colors.amber : Colors.black45,
+                ),
+        ),
+        _actionButton(
+          tooltip: t.inStock,
+          onPressed: () => _toggleStock(product),
+          icon: Icon(
+            product.inStock ? Icons.check_circle : Icons.remove_circle,
+            color: darkPink,
+          ),
+        ),
+        _actionButton(
+          tooltip: t.editProduct,
+          onPressed: () => _showEditor(product: product),
+          icon: const Icon(Icons.edit, color: Colors.black54),
+        ),
+        _actionButton(
+          tooltip: t.delete,
+          onPressed: () => _deleteProduct(product),
+          icon: const Icon(Icons.delete, color: Colors.redAccent),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionButton({
+    required String tooltip,
+    required Widget icon,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        tooltip: tooltip,
+        icon: icon,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+        onPressed: onPressed,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.t;
@@ -378,81 +621,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFE60064)),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: ProductImage(
-                        product: product,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorWidget: Icon(Icons.local_florist, color: darkPink),
-                      ),
-                    ),
-                    title: Text(
-                      t.productName(product),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '${t.priceValue(product.price)} • ${t.stock}: ${product.stockCount}',
-                    ),
-                    trailing: Wrap(
-                      spacing: 6,
-                      children: [
-                        IconButton(
-                          icon: _popularUpdating.contains(product.id)
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Icon(
-                                  product.popular
-                                      ? Icons.star
-                                      : Icons.star_border,
-                                  color: product.popular
-                                      ? Colors.amber
-                                      : Colors.black45,
-                                ),
-                          onPressed: _popularUpdating.contains(product.id)
-                              ? null
-                              : () => _togglePopular(product),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            product.inStock
-                                ? Icons.check_circle
-                                : Icons.remove_circle,
-                            color: darkPink,
-                          ),
-                          onPressed: () => _toggleStock(product),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.black54),
-                          onPressed: () => _showEditor(product: product),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete,
-                            color: Colors.redAccent,
-                          ),
-                          onPressed: () => _deleteProduct(product),
-                        ),
-                      ],
-                    ),
-                  ),
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 520;
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    return _productCard(products[index], compact: compact);
+                  },
                 );
               },
             ),
