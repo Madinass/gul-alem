@@ -99,31 +99,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('catalog setup dialogs cancel without errors', (tester) async {
+  testWidgets('catalog setup create actions are hidden', (tester) async {
     final flutterErrors = await pumpAdminProductsScreen(tester);
 
-    await tester.tap(find.text('Санат қосу'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.byType(AlertDialog), findsOneWidget);
-
-    await tester.tap(find.text('Бас тарту'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.byType(AlertDialog), findsNothing);
-
-    await tester.tap(find.text('Гүл түрін қосу'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.byType(AlertDialog), findsOneWidget);
-
-    await tester.tap(find.text('Бас тарту'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
+    expect(find.byType(OutlinedButton), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
     expect(flutterErrors, isEmpty);
     expect(tester.takeException(), isNull);

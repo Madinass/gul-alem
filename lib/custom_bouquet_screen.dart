@@ -497,6 +497,7 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
                                       : Colors.black87,
                                   fontSize: width < 340 ? 14 : 16,
                                   height: 1.35,
+                                  fontStyle: FontStyle.italic,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
