@@ -32,7 +32,8 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.t;
     final productAvailable = product.inStock && product.stockCount > 0;
-    final canAddToCart = productAvailable && onAddToCartPressed != null;
+    final addAction = onTap ?? onAddToCartPressed;
+    final canAddToCart = productAvailable && addAction != null;
 
     return Container(
       width: width,
@@ -123,7 +124,7 @@ class ProductCard extends StatelessWidget {
                   SizedBox(
                     height: 38,
                     child: ElevatedButton(
-                      onPressed: canAddToCart ? onAddToCartPressed : null,
+                      onPressed: canAddToCart ? addAction : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accentColor,
                         disabledBackgroundColor: Colors.grey.shade300,
@@ -135,23 +136,14 @@ class ProductCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.shopping_cart_outlined, size: 18),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              productAvailable ? t.addToCart : t.outOfStock,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: Tooltip(
+                        message: productAvailable ? t.addToCart : t.outOfStock,
+                        child: Icon(
+                          productAvailable
+                              ? Icons.shopping_cart_outlined
+                              : Icons.remove_shopping_cart_outlined,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -189,7 +181,8 @@ class ProductListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.t;
     final productAvailable = product.inStock && product.stockCount > 0;
-    final canAddToCart = productAvailable && onAddToCartPressed != null;
+    final addAction = onTap ?? onAddToCartPressed;
+    final canAddToCart = productAvailable && addAction != null;
 
     return Material(
       color: Colors.white,
@@ -270,7 +263,7 @@ class ProductListCard extends StatelessWidget {
                     icon: Icons.shopping_cart_outlined,
                     color: canAddToCart ? accentColor : Colors.grey,
                     tooltip: t.addToCart,
-                    onPressed: canAddToCart ? onAddToCartPressed : null,
+                    onPressed: canAddToCart ? addAction : null,
                   ),
                 ],
               ),

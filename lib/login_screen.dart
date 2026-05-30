@@ -19,20 +19,57 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isObscure = true;
   bool _isLoading = false;
 
+  bool get _canSubmit =>
+      _phoneController.text.trim().isNotEmpty &&
+      _passwordController.text.isNotEmpty &&
+      !_isLoading;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController.addListener(_onInputChanged);
+    _passwordController.addListener(_onInputChanged);
+  }
+
   @override
   void dispose() {
+    _phoneController.removeListener(_onInputChanged);
+    _passwordController.removeListener(_onInputChanged);
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _onLoginPressed() async {
-    final t = context.t;
-    final loginInput = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
+  void _onInputChanged() {
+    if (mounted) setState(() {});
+  }
 
-    if (loginInput.isEmpty) {
+  String? _normalizedLogin(String value) {
+    final trimmed = value.trim();
+    if (trimmed.contains('@')) {
+      final emailOk = RegExp(
+        r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$',
+      ).hasMatch(trimmed);
+      return emailOk ? trimmed.toLowerCase() : null;
+    }
+
+    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+    if (digits.length >= 10 && digits.length <= 11) return digits;
+    return null;
+  }
+
+  Future<void> _onLoginPressed() async {
+    if (_isLoading) return;
+    final t = context.t;
+    final loginInput = _normalizedLogin(_phoneController.text);
+    final password = _passwordController.text;
+
+    if (_phoneController.text.trim().isEmpty) {
       _showSnackBar(t.loginRequired, Colors.redAccent);
+      return;
+    }
+    if (loginInput == null) {
+      _showSnackBar(t.invalidLoginFormat, Colors.redAccent);
       return;
     }
 
@@ -153,12 +190,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _phoneController,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
                           decoration: _inputStyle(t.phoneOrEmail),
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
                           obscureText: _isObscure,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) {
+                            if (_canSubmit) _onLoginPressed();
+                          },
                           decoration: _inputStyle(t.password).copyWith(
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -198,7 +240,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     Colors.pink.shade50,
                                     Colors.pink.shade300,
                                   ),
-                                  onPressed: _onLoginPressed,
+                                  onPressed: _canSubmit
+                                      ? _onLoginPressed
+                                      : null,
                                   icon: const Icon(
                                     Icons.login,
                                     color: Colors.pink,
@@ -271,6 +315,9 @@ class _LoginScreenState extends State<LoginScreen> {
   ButtonStyle _buttonStyle(Color bg, Color border) {
     return ElevatedButton.styleFrom(
       backgroundColor: bg,
+      disabledBackgroundColor: bg,
+      foregroundColor: Colors.black87,
+      disabledForegroundColor: Colors.black87,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: border, width: 1.5),

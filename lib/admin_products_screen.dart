@@ -11,7 +11,18 @@ import 'services/image_upload_service.dart';
 import 'widgets/product_image.dart';
 
 class AdminProductsScreen extends StatefulWidget {
-  const AdminProductsScreen({super.key});
+  final Future<List<Product>> Function() fetchProducts;
+  final Future<List<Category>> Function() fetchCategories;
+  final Future<List<String>> Function() fetchFlowerTypes;
+
+  const AdminProductsScreen({
+    super.key,
+    Future<List<Product>> Function()? fetchProducts,
+    Future<List<Category>> Function()? fetchCategories,
+    Future<List<String>> Function()? fetchFlowerTypes,
+  }) : fetchProducts = fetchProducts ?? ApiService.fetchProducts,
+       fetchCategories = fetchCategories ?? ApiService.fetchCategories,
+       fetchFlowerTypes = fetchFlowerTypes ?? ApiService.fetchFlowerTypes;
 
   @override
   State<AdminProductsScreen> createState() => _AdminProductsScreenState();
@@ -19,8 +30,21 @@ class AdminProductsScreen extends StatefulWidget {
 
 class _AdminProductsScreenState extends State<AdminProductsScreen> {
   final Color darkPink = const Color(0xFFE60064);
+  final List<String> _defaultFlowerTypes = const [
+    'rose',
+    'tulip',
+    'peony',
+    'lily',
+    'hydrangea',
+    'chrysanthemum',
+    'mixed',
+    'bouquet',
+    'umbrella',
+    'balloon',
+  ];
   List<Product> products = [];
   List<Category> categories = [];
+  List<String> flowerTypes = [];
   bool _loading = true;
   final ImagePicker _imagePicker = ImagePicker();
   final Set<String> _popularUpdating = {};
@@ -33,19 +57,50 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   Future<void> _loadData() async {
     try {
-      final results = await Future.wait([
-        ApiService.fetchProducts(),
-        ApiService.fetchCategories(),
-      ]);
+      final loadedProducts = await widget.fetchProducts();
+      final loadedCategories = await widget.fetchCategories();
+      var loadedFlowerTypes = <String>[];
+      try {
+        loadedFlowerTypes = await widget.fetchFlowerTypes();
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
-        products = results[0] as List<Product>;
-        categories = results[1] as List<Category>;
+        products = loadedProducts;
+        categories = loadedCategories;
+        flowerTypes = _mergeFlowerTypes([
+          ...loadedFlowerTypes,
+          ...loadedProducts.map((product) => product.flowerType),
+        ]);
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  String _normalizeFlowerType(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+  }
+
+  List<String> _mergeFlowerTypes(Iterable<String> values) {
+    final seen = <String>{};
+    final merged = <String>[];
+    for (final value in [...values, ..._defaultFlowerTypes]) {
+      final normalized = _normalizeFlowerType(value);
+      if (normalized.isEmpty || seen.contains(normalized)) continue;
+      seen.add(normalized);
+      merged.add(normalized);
+    }
+    return merged;
+  }
+
+  Future<void> _disposeControllersAfterClose(
+    List<TextEditingController> controllers,
+  ) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    for (final controller in controllers) {
+      controller.dispose();
     }
   }
 
@@ -59,14 +114,21 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     final imageController = TextEditingController(
       text: product?.imagePath ?? '',
     );
-    final flowerController = TextEditingController(
-      text: product?.flowerType ?? '',
-    );
     final stockController = TextEditingController(
       text: product?.stockCount.toString() ?? '0',
     );
     bool inStock = product?.inStock ?? true;
     bool popular = product?.popular ?? false;
+    final flowerTypeOptions = _mergeFlowerTypes([
+      ...flowerTypes,
+      if (product != null) product.flowerType,
+    ]);
+    String? selectedFlowerType = product == null
+        ? flowerTypeOptions.first
+        : _normalizeFlowerType(product.flowerType);
+    if (!flowerTypeOptions.contains(selectedFlowerType)) {
+      selectedFlowerType = flowerTypeOptions.first;
+    }
     final categoryIds = categories.map((category) => category.id).toSet();
     String? categoryId = product?.categoryId;
     if (categoryId == null || !categoryIds.contains(categoryId)) {
@@ -100,9 +162,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     }
 
     String? imageValidator(String? value) {
+      final hasExistingImage = product?.displayImage.isNotEmpty ?? false;
       if (selectedImageFile == null &&
+          !hasExistingImage &&
           (value == null || value.trim().isEmpty)) {
-        return t.fillAllFields;
+        return t.productImageRequired;
       }
       return null;
     }
@@ -119,12 +183,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   source: ImageSource.gallery,
                   imageQuality: 85,
                 );
+                if (!dialogContext.mounted) return;
                 if (image == null) return;
                 setDialogState(() {
                   selectedImageFile = image;
                   errorMessage = null;
                 });
               } catch (e) {
+                if (!dialogContext.mounted) return;
                 setDialogState(() => errorMessage = e.toString());
               }
             }
@@ -134,13 +200,25 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               if (!(formKey.currentState?.validate() ?? false)) {
                 return;
               }
+              final imageInput = imageController.text.trim();
+              if (selectedImageFile == null &&
+                  imageInput.isEmpty &&
+                  (product?.displayImage.isNotEmpty ?? false) == false) {
+                setDialogState(() => errorMessage = t.productImageRequired);
+                return;
+              }
+              if (selectedFlowerType == null ||
+                  selectedFlowerType!.trim().isEmpty) {
+                setDialogState(() => errorMessage = t.fillAllFields);
+                return;
+              }
               setDialogState(() {
                 saving = true;
                 errorMessage = null;
               });
 
               try {
-                var imagePath = imageController.text.trim();
+                var imagePath = product?.imagePath ?? '';
                 var imageUrl = product?.imageUrl ?? '';
 
                 if (selectedImageFile != null) {
@@ -149,11 +227,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   );
                   imagePath = imageUrl;
                   imageController.text = imageUrl;
-                } else if (imagePath.startsWith('http://') ||
-                    imagePath.startsWith('https://')) {
-                  imageUrl = imagePath;
-                } else if (imagePath != product?.imagePath) {
-                  imageUrl = '';
+                } else if (imageInput.isNotEmpty) {
+                  imagePath = imageInput;
+                  if (imageInput.startsWith('http://') ||
+                      imageInput.startsWith('https://')) {
+                    imageUrl = imageInput;
+                  } else if (imageInput != product?.imagePath) {
+                    imageUrl = '';
+                  }
                 }
 
                 final updated = Product(
@@ -162,7 +243,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   price: int.parse(priceController.text.trim()),
                   imagePath: imagePath,
                   imageUrl: imageUrl,
-                  flowerType: flowerController.text.trim(),
+                  flowerType: selectedFlowerType!,
                   categoryId: categoryId,
                   inStock: inStock,
                   stockCount: int.parse(stockController.text.trim()),
@@ -179,6 +260,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   Navigator.pop(dialogContext, true);
                 }
               } catch (e) {
+                if (!dialogContext.mounted) return;
                 setDialogState(() {
                   saving = false;
                   errorMessage = e.toString();
@@ -198,224 +280,515 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               mediaQuery.size.height - mediaQuery.viewInsets.bottom - 220,
             );
 
-            return AlertDialog(
-              insetPadding: EdgeInsets.symmetric(
-                horizontal: horizontalInset,
-                vertical: 16,
-              ),
-              titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-              actionsPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              actionsOverflowAlignment: OverflowBarAlignment.end,
-              actionsOverflowDirection: VerticalDirection.down,
-              title: Text(product == null ? t.newProduct : t.editProduct),
-              content: SizedBox(
-                width: contentWidth,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: maxContentHeight),
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    child: Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            height: mediaQuery.size.width < 360 ? 120 : 150,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.pink[50],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: selectedImageFile != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: FutureBuilder<Uint8List>(
-                                      future: selectedImageFile!.readAsBytes(),
-                                      builder: (context, snapshot) {
-                                        if (!snapshot.hasData) {
-                                          return const Center(
-                                            child: CircularProgressIndicator(),
+            return PopScope(
+              canPop: !saving,
+              child: AlertDialog(
+                insetPadding: EdgeInsets.symmetric(
+                  horizontal: horizontalInset,
+                  vertical: 16,
+                ),
+                titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                actionsPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                actionsOverflowAlignment: OverflowBarAlignment.end,
+                actionsOverflowDirection: VerticalDirection.down,
+                title: Text(product == null ? t.newProduct : t.editProduct),
+                content: SizedBox(
+                  width: contentWidth,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxContentHeight),
+                    child: SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              height: mediaQuery.size.width < 360 ? 120 : 150,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.pink[50],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: selectedImageFile != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: FutureBuilder<Uint8List>(
+                                        future: selectedImageFile!
+                                            .readAsBytes(),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                          }
+                                          return Image.memory(
+                                            snapshot.data!,
+                                            fit: BoxFit.contain,
                                           );
-                                        }
-                                        return Image.memory(
-                                          snapshot.data!,
-                                          fit: BoxFit.contain,
-                                        );
-                                      },
+                                        },
+                                      ),
+                                    )
+                                  : product != null &&
+                                        product.displayImage.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: ProductImage(
+                                        product: product,
+                                        fit: BoxFit.contain,
+                                        width: double.infinity,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.image,
+                                      color: darkPink,
+                                      size: 48,
                                     ),
-                                  )
-                                : product != null &&
-                                      product.displayImage.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: ProductImage(
-                                      product: product,
-                                      fit: BoxFit.contain,
-                                      width: double.infinity,
-                                    ),
-                                  )
-                                : Icon(Icons.image, color: darkPink, size: 48),
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton.icon(
-                              onPressed: saving ? null : pickImage,
-                              icon: const Icon(Icons.image_outlined),
-                              label: Text(
-                                t.chooseImage,
-                                overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: saving ? null : pickImage,
+                                icon: const Icon(Icons.image_outlined),
+                                label: Text(
+                                  t.chooseImage,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                          ),
-                          TextFormField(
-                            controller: nameController,
-                            enabled: !saving,
-                            textInputAction: TextInputAction.next,
-                            validator: requiredValidator,
-                            decoration: InputDecoration(labelText: t.name),
-                          ),
-                          TextFormField(
-                            controller: priceController,
-                            enabled: !saving,
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.next,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            validator: priceValidator,
-                            decoration: InputDecoration(labelText: t.price),
-                          ),
-                          TextFormField(
-                            controller: imageController,
-                            enabled: !saving,
-                            keyboardType: TextInputType.url,
-                            textInputAction: TextInputAction.next,
-                            validator: imageValidator,
-                            decoration: InputDecoration(labelText: t.imagePath),
-                          ),
-                          TextFormField(
-                            controller: flowerController,
-                            enabled: !saving,
-                            textInputAction: TextInputAction.next,
-                            validator: requiredValidator,
-                            decoration: InputDecoration(
-                              labelText: t.flowerType,
+                            TextFormField(
+                              controller: nameController,
+                              enabled: !saving,
+                              textInputAction: TextInputAction.next,
+                              validator: requiredValidator,
+                              decoration: InputDecoration(labelText: t.name),
                             ),
-                          ),
-                          TextFormField(
-                            controller: stockController,
-                            enabled: !saving,
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.done,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            validator: stockValidator,
-                            decoration: InputDecoration(
-                              labelText: t.stockCount,
+                            TextFormField(
+                              controller: priceController,
+                              enabled: !saving,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.next,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              validator: priceValidator,
+                              decoration: InputDecoration(labelText: t.price),
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<String>(
-                            initialValue: categoryId,
-                            isExpanded: true,
-                            items: categories
-                                .map(
-                                  (category) => DropdownMenuItem(
-                                    value: category.id,
-                                    child: Text(
-                                      t.categoryName(category),
-                                      overflow: TextOverflow.ellipsis,
+                            TextFormField(
+                              controller: imageController,
+                              enabled: !saving,
+                              keyboardType: TextInputType.url,
+                              textInputAction: TextInputAction.next,
+                              validator: imageValidator,
+                              decoration: InputDecoration(
+                                labelText: t.imagePath,
+                              ),
+                            ),
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedFlowerType,
+                              isExpanded: true,
+                              validator: requiredValidator,
+                              items: flowerTypeOptions
+                                  .map(
+                                    (value) => DropdownMenuItem(
+                                      value: value,
+                                      child: Text(
+                                        value,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                  )
+                                  .toList(),
+                              onChanged: saving
+                                  ? null
+                                  : (value) => setDialogState(
+                                      () => selectedFlowerType = value,
+                                    ),
+                              decoration: InputDecoration(
+                                labelText: t.flowerType,
+                              ),
+                            ),
+                            TextFormField(
+                              controller: stockController,
+                              enabled: !saving,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.done,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              validator: stockValidator,
+                              decoration: InputDecoration(
+                                labelText: t.stockCount,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            DropdownButtonFormField<String>(
+                              initialValue: categoryId,
+                              isExpanded: true,
+                              items: categories
+                                  .map(
+                                    (category) => DropdownMenuItem(
+                                      value: category.id,
+                                      child: Text(
+                                        t.categoryName(category),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: saving
+                                  ? null
+                                  : (value) => setDialogState(
+                                      () => categoryId = value,
+                                    ),
+                              decoration: InputDecoration(
+                                labelText: t.category,
+                              ),
+                            ),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              value: inStock,
+                              onChanged: saving
+                                  ? null
+                                  : (value) =>
+                                        setDialogState(() => inStock = value),
+                              title: Text(t.inStock),
+                            ),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              value: popular,
+                              onChanged: saving
+                                  ? null
+                                  : (value) =>
+                                        setDialogState(() => popular = value),
+                              title: Text(t.popular),
+                            ),
+                            if (saving)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: LinearProgressIndicator(color: darkPink),
+                              ),
+                            if (errorMessage != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  errorMessage!,
+                                  style: const TextStyle(
+                                    color: Colors.redAccent,
                                   ),
-                                )
-                                .toList(),
-                            onChanged: saving
-                                ? null
-                                : (value) =>
-                                      setDialogState(() => categoryId = value),
-                            decoration: InputDecoration(labelText: t.category),
-                          ),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            value: inStock,
-                            onChanged: saving
-                                ? null
-                                : (value) =>
-                                      setDialogState(() => inStock = value),
-                            title: Text(t.inStock),
-                          ),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            value: popular,
-                            onChanged: saving
-                                ? null
-                                : (value) =>
-                                      setDialogState(() => popular = value),
-                            title: Text(t.popular),
-                          ),
-                          if (saving)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: LinearProgressIndicator(color: darkPink),
-                            ),
-                          if (errorMessage != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                errorMessage!,
-                                style: const TextStyle(color: Colors.redAccent),
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: saving
-                      ? null
-                      : () => Navigator.pop(dialogContext, false),
-                  child: Text(t.cancel),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkPink,
-                    foregroundColor: Colors.white,
+                actions: [
+                  TextButton(
+                    onPressed: saving
+                        ? null
+                        : () => Navigator.pop(dialogContext, false),
+                    child: Text(t.cancel),
                   ),
-                  onPressed: saving ? null : saveProduct,
-                  child: saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(t.save),
-                ),
-              ],
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: darkPink,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: saving ? null : saveProduct,
+                    child: saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(t.save),
+                  ),
+                ],
+              ),
             );
           },
         );
       },
     );
 
-    nameController.dispose();
-    priceController.dispose();
-    imageController.dispose();
-    flowerController.dispose();
-    stockController.dispose();
+    await _disposeControllersAfterClose([
+      nameController,
+      priceController,
+      imageController,
+      stockController,
+    ]);
 
     if (result == true) {
+      await _loadData();
+    }
+  }
+
+  Future<void> _showAddFlowerTypeDialog() async {
+    final t = context.t;
+    final controller = TextEditingController();
+    var saving = false;
+    String? errorMessage;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> save() async {
+              if (saving) return;
+              final name = _normalizeFlowerType(controller.text);
+              if (name.isEmpty) {
+                setDialogState(() => errorMessage = t.fillAllFields);
+                return;
+              }
+              setDialogState(() {
+                saving = true;
+                errorMessage = null;
+              });
+              try {
+                await ApiService.createFlowerType(name);
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              } catch (error) {
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  saving = false;
+                  errorMessage = t.errorWith(error);
+                });
+              }
+            }
+
+            return PopScope(
+              canPop: !saving,
+              child: AlertDialog(
+                title: Text(t.newFlowerType),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      enabled: !saving,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(labelText: t.flowerType),
+                      onSubmitted: (_) => save(),
+                    ),
+                    if (saving)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: LinearProgressIndicator(color: darkPink),
+                      ),
+                    if (errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          errorMessage!,
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: saving
+                        ? null
+                        : () => Navigator.pop(dialogContext, false),
+                    child: Text(t.cancel),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: darkPink,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: saving ? null : save,
+                    child: Text(t.save),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    await _disposeControllersAfterClose([controller]);
+
+    if (saved == true) {
+      await _loadData();
+    }
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final t = context.t;
+    final nameController = TextEditingController();
+    XFile? selectedImageFile;
+    var saving = false;
+    String? errorMessage;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> pickImage() async {
+              try {
+                final image = await _imagePicker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 85,
+                );
+                if (!dialogContext.mounted || image == null) return;
+                setDialogState(() {
+                  selectedImageFile = image;
+                  errorMessage = null;
+                });
+              } catch (error) {
+                if (!dialogContext.mounted) return;
+                setDialogState(() => errorMessage = t.errorWith(error));
+              }
+            }
+
+            Future<void> save() async {
+              if (saving) return;
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
+                setDialogState(() => errorMessage = t.fillAllFields);
+                return;
+              }
+              if (selectedImageFile == null) {
+                setDialogState(() => errorMessage = t.categoryImageRequired);
+                return;
+              }
+              setDialogState(() {
+                saving = true;
+                errorMessage = null;
+              });
+              try {
+                final imageUrl = await ImageUploadService.uploadCategoryImage(
+                  selectedImageFile!,
+                );
+                await ApiService.createCategory(
+                  name: name,
+                  imagePath: imageUrl,
+                  imageUrl: imageUrl,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              } catch (error) {
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  saving = false;
+                  errorMessage = t.errorWith(error);
+                });
+              }
+            }
+
+            return PopScope(
+              canPop: !saving,
+              child: AlertDialog(
+                title: Text(t.newCategory),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        height: 130,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.pink[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: selectedImageFile == null
+                            ? Icon(Icons.image, color: darkPink, size: 42)
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: FutureBuilder<Uint8List>(
+                                  future: selectedImageFile!.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (!snapshot.hasData) {
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    }
+                                    return Image.memory(
+                                      snapshot.data!,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: saving ? null : pickImage,
+                          icon: const Icon(Icons.image_outlined),
+                          label: Text(t.chooseImage),
+                        ),
+                      ),
+                      TextField(
+                        controller: nameController,
+                        enabled: !saving,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(labelText: t.name),
+                        onSubmitted: (_) => save(),
+                      ),
+                      if (saving)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: LinearProgressIndicator(color: darkPink),
+                        ),
+                      if (errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            errorMessage!,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: saving
+                        ? null
+                        : () => Navigator.pop(dialogContext, false),
+                    child: Text(t.cancel),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: darkPink,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: saving ? null : save,
+                    child: Text(t.save),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    await _disposeControllersAfterClose([nameController]);
+
+    if (saved == true) {
       await _loadData();
     }
   }
@@ -601,6 +974,63 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
   }
 
+  Widget _catalogManagementSection({required bool compact}) {
+    final t = context.t;
+    final previewTypes = flowerTypes.take(6).join(', ');
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD6E2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.tune, color: darkPink),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t.catalogSetup,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _showAddCategoryDialog,
+                icon: const Icon(Icons.category_outlined),
+                label: Text(t.addCategory),
+              ),
+              OutlinedButton.icon(
+                onPressed: _showAddFlowerTypeDialog,
+                icon: const Icon(Icons.local_florist_outlined),
+                label: Text(t.addFlowerType),
+              ),
+            ],
+          ),
+          if (previewTypes.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${t.flowerTypes}: $previewTypes',
+              maxLines: compact ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.t;
@@ -624,12 +1054,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           : LayoutBuilder(
               builder: (context, constraints) {
                 final compact = constraints.maxWidth < 520;
-                return ListView.builder(
+                return ListView(
                   padding: const EdgeInsets.all(16),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    return _productCard(products[index], compact: compact);
-                  },
+                  children: [
+                    _catalogManagementSection(compact: compact),
+                    const SizedBox(height: 14),
+                    ...products.map(
+                      (product) => _productCard(product, compact: compact),
+                    ),
+                  ],
                 );
               },
             ),

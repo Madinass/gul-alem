@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/api_service.dart';
@@ -24,9 +26,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? _errorMessage;
   bool _isNewPasswordObscured = true;
   bool _isConfirmPasswordObscured = true;
+  Timer? _resendTimer;
+  int _resendSeconds = 0;
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _emailController.dispose();
     _codeController.dispose();
     _passwordController.dispose();
@@ -57,7 +62,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           if (!mounted) return;
           setState(() {
             _currentStep = ForgotPasswordStep.verifyCode;
+            _codeController.clear();
           });
+          _startResendTimer();
           return;
 
         case ForgotPasswordStep.verifyCode:
@@ -106,8 +113,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             return;
           }
           final hasNumber = RegExp(r'\d').hasMatch(password);
+          final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+          final hasLower = RegExp(r'[a-z]').hasMatch(password);
           final hasSpecial = RegExp(r'[^\w\s]').hasMatch(password);
-          if (!hasNumber || !hasSpecial) {
+          final hasSpace = RegExp(r'\s').hasMatch(password);
+          if (!hasNumber || !hasUpper || !hasLower || !hasSpecial || hasSpace) {
             setState(() {
               _errorMessage = t.passwordSpecialRule;
             });
@@ -125,8 +135,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             newPassword: _passwordController.text,
           );
           if (!mounted) return;
+          _resendTimer?.cancel();
           setState(() {
             _currentStep = ForgotPasswordStep.success;
+            _resendSeconds = 0;
           });
           return;
 
@@ -157,6 +169,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _errorMessage = null;
       switch (_currentStep) {
         case ForgotPasswordStep.verifyCode:
+          _resendTimer?.cancel();
+          _resendSeconds = 0;
           _currentStep = ForgotPasswordStep.enterPhone;
           break;
         case ForgotPasswordStep.setNewPassword:
@@ -169,6 +183,51 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           break;
       }
     });
+  }
+
+  void _startResendTimer() {
+    _resendTimer?.cancel();
+    setState(() {
+      _resendSeconds = 60;
+    });
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+        return;
+      }
+      setState(() => _resendSeconds--);
+    });
+  }
+
+  Future<void> _resendCode() async {
+    if (_isSubmitting || _resendSeconds > 0) return;
+    final t = context.t;
+    setState(() {
+      _errorMessage = null;
+      _isSubmitting = true;
+    });
+    try {
+      await ApiService.requestPasswordReset(_emailController.text.trim());
+      if (!mounted) return;
+      _codeController.clear();
+      _startResendTimer();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = t.localizedErrorMessage(error);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   String _title(AppText t) {
@@ -239,6 +298,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextField(
           controller: _codeController,
           keyboardType: TextInputType.number,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_isSubmitting) _nextStep();
+          },
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(6),
@@ -256,6 +320,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         _buildErrorMessage(),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _isSubmitting || _resendSeconds > 0 ? null : _resendCode,
+            child: Text(
+              _resendSeconds > 0
+                  ? t.resendCodeIn(_resendSeconds)
+                  : t.resendCode,
+            ),
+          ),
+        ),
         const SizedBox(height: 30),
         _buildActionButton(t.verifyCode, Icons.check_circle_outline),
       ],
@@ -280,7 +355,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             prefixIcon: const Icon(Icons.lock_outline, color: Colors.pink),
             suffixIcon: IconButton(
               icon: Icon(
-                _isNewPasswordObscured ? Icons.visibility_off : Icons.visibility,
+                _isNewPasswordObscured
+                    ? Icons.visibility_off
+                    : Icons.visibility,
                 color: Colors.pink,
               ),
               onPressed: () {

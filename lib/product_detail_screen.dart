@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
 import 'widgets/product_image.dart';
 import 'product.dart'; // Product моделін алу үшін
@@ -41,6 +42,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // Әр өнім беті
   Widget _buildProductPage(Product product, Size screenSize) {
     final t = context.t;
+    final productAvailable = product.inStock && product.stockCount > 0;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -93,27 +95,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const Spacer(),
           // Себетке қосу батырмасы
-          ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(t.productAdded(t.productName(product))),
-                  backgroundColor: darkPink,
-                  behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 2),
+          Tooltip(
+            message: productAvailable ? t.addToCart : t.outOfStock,
+            child: SizedBox(
+              width: 64,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: productAvailable
+                    ? () => showAddToCartSheet(context, product)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentPink,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.grey.shade600,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-            label: Text(
-              t.addToCart,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accentPink,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+                child: Icon(
+                  productAvailable
+                      ? Icons.shopping_cart_outlined
+                      : Icons.remove_shopping_cart_outlined,
+                  size: 26,
+                ),
               ),
             ),
           ),

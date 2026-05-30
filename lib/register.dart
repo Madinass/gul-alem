@@ -82,7 +82,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       showValidationError(t.passwordNumberRule);
       return;
     }
-    if (!RegExp(r'[^\w\s]').hasMatch(password)) {
+    if (!RegExp(r'[A-Z]').hasMatch(password) ||
+        !RegExp(r'[a-z]').hasMatch(password) ||
+        !RegExp(r'[^\w\s]').hasMatch(password) ||
+        RegExp(r'\s').hasMatch(password)) {
       showValidationError(t.passwordSpecialRule);
       return;
     }

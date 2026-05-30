@@ -36,7 +36,10 @@ class RegisterValidator {
     if (!RegExp(r'\d').hasMatch(password)) {
       return "Құпия сөз кемінде бір саннан (0-9) тұруы керек.";
     }
-    if (!RegExp(r'[^\w\s]').hasMatch(password)) {
+    if (!RegExp(r'[A-Z]').hasMatch(password) ||
+        !RegExp(r'[a-z]').hasMatch(password) ||
+        !RegExp(r'[^\w\s]').hasMatch(password) ||
+        RegExp(r'\s').hasMatch(password)) {
       return "Құпия сөзде кемінде бір арнайы таңба болуы керек.";
     }
     if (password != confirmPassword) {

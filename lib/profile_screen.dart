@@ -6,10 +6,12 @@ import 'admin_products_screen.dart';
 import 'admin_orders_screen.dart';
 import 'admin_emails_screen.dart';
 import 'admin_custom_items_screen.dart';
+import 'admin_statistics_screen.dart';
 import 'login_screen.dart';
 import 'order_model.dart';
 import 'payment_card_input.dart';
 import 'services/api_service.dart';
+import 'widgets/order_items_gallery.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -495,10 +497,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(t.ordersEmpty, style: const TextStyle(color: Colors.black54))
         else
           ..._orders.map((order) {
-            final count = order.items.fold<int>(
-              0,
-              (sum, item) => sum + item.quantity,
-            );
+            final count = order.items.isNotEmpty
+                ? order.items.fold<int>(0, (sum, item) => sum + item.quantity)
+                : order.customItems.fold<int>(
+                    0,
+                    (sum, item) => sum + item.quantity,
+                  );
+            final customDetailItems = OrderCustomDetails.itemsFromOrder(order);
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
@@ -517,11 +522,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    order.orderType == 'custom'
-                        ? t.customOrderLabel
-                        : t.orderMade,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildOrderFeatureBadges(order),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          order.orderType == 'custom'
+                              ? t.customOrderLabel
+                              : t.orderMade,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(t.dateWith(_formatDate(order.createdAt))),
@@ -530,6 +546,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (order.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(t.descriptionWith(order.description)),
+                  ],
+                  if (order.cardMessage.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(t.cardMessageWith(order.cardMessage)),
+                  ],
+                  if (customDetailItems.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    OrderCustomDetails(items: customDetailItems),
                   ],
                   const SizedBox(height: 6),
                   Text(
@@ -573,12 +597,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  OrderItemsGallery.fromOrder(order),
                 ],
               ),
             );
           }),
       ],
     );
+  }
+
+  Widget _buildOrderFeatureBadges(OrderModel order) {
+    final features = _orderFeatures(order);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 96),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: features.map(_buildOrderFeatureBadge).toList(),
+      ),
+    );
+  }
+
+  Widget _buildOrderFeatureBadge(_OrderFeature feature) {
+    return Tooltip(
+      message: feature.tooltip,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: feature.backgroundColor,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(feature.icon, color: feature.iconColor, size: 16),
+      ),
+    );
+  }
+
+  List<_OrderFeature> _orderFeatures(OrderModel order) {
+    final t = context.t;
+    final features = <_OrderFeature>[
+      order.deliveryMethod == 'courier'
+          ? _OrderFeature(
+              icon: Icons.delivery_dining_rounded,
+              backgroundColor: const Color(0xFFE9F8EC),
+              iconColor: const Color(0xFF159447),
+              tooltip: t.courierDelivery,
+            )
+          : _OrderFeature(
+              icon: Icons.storefront_rounded,
+              backgroundColor: const Color(0xFFFFF4D8),
+              iconColor: const Color(0xFFC88700),
+              tooltip: t.pickupFromStore,
+            ),
+    ];
+
+    if (order.hasFlower) {
+      features.add(
+        _OrderFeature(
+          icon: Icons.local_florist_rounded,
+          backgroundColor: const Color(0xFFFFEAF1),
+          iconColor: const Color(0xFFE60064),
+          tooltip: t.customGroupLabel('flowers'),
+        ),
+      );
+    }
+    if (order.hasGreetingCard) {
+      features.add(
+        _OrderFeature(
+          icon: Icons.mail_outline_rounded,
+          backgroundColor: const Color(0xFFF0ECFF),
+          iconColor: const Color(0xFF7555D9),
+          tooltip: t.customItemName(
+            'assets/custom_bouquet/custom_bouquet_card.png',
+            'Greeting card',
+          ),
+        ),
+      );
+    }
+
+    return features;
   }
 
   Widget _buildLanguageSection(Color darkPink, Color lightPink) {
@@ -770,6 +868,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              _buildActionButton(
+                context,
+                label: t.adminStatistics,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminStatisticsScreen(),
+                  ),
+                ),
+              ),
               if (_role == 'super_admin') ...[
                 const SizedBox(height: 10),
                 _buildActionButton(
@@ -841,4 +950,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+}
+
+class _OrderFeature {
+  final IconData icon;
+  final Color backgroundColor;
+  final Color iconColor;
+  final String tooltip;
+
+  const _OrderFeature({
+    required this.icon,
+    required this.backgroundColor,
+    required this.iconColor,
+    required this.tooltip,
+  });
 }

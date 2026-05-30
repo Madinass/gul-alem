@@ -54,6 +54,10 @@ class ImageUploadService {
   static Future<String> uploadCustomBouquetImage(XFile imageFile) {
     return uploadImage(imageFile, folder: 'custom-bouquet');
   }
+
+  static Future<String> uploadCategoryImage(XFile imageFile) {
+    return uploadImage(imageFile, folder: 'categories');
+  }
 }
 
 Future<String> uploadProductImage(XFile imageFile) {

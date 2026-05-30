@@ -34,17 +34,15 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '',
-      price: (json['price'] ?? 0) is int
-          ? json['price']
-          : (json['price'] as num).toInt(),
+      name: json['name']?.toString() ?? '',
+      price: _readInt(json['price']),
       imagePath: (json['imagePath'] ?? json['imageUrl'] ?? '').toString(),
       imageUrl: (json['imageUrl'] ?? '').toString(),
-      flowerType: json['flowerType'] ?? '',
+      flowerType: json['flowerType']?.toString() ?? '',
       categoryId: json['categoryId']?.toString(),
-      inStock: json['inStock'] ?? true,
-      stockCount: json['stockCount'] ?? 0,
-      popular: json['popular'] ?? false,
+      inStock: _readBool(json['inStock'], true),
+      stockCount: _readInt(json['stockCount']),
+      popular: _readBool(json['popular']),
       occasionTags: _readStringList(json['occasionTags']),
       recipientTags: _readStringList(json['recipientTags']),
     );
@@ -72,5 +70,21 @@ class Product {
       return value.map((item) => item.toString()).toList();
     }
     return const [];
+  }
+
+  static int _readInt(dynamic value, [int fallback = 0]) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final text = value?.toString() ?? '';
+    return int.tryParse(text) ?? double.tryParse(text)?.toInt() ?? fallback;
+  }
+
+  static bool _readBool(dynamic value, [bool fallback = false]) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final text = value?.toString().trim().toLowerCase();
+    if (text == 'true' || text == '1') return true;
+    if (text == 'false' || text == '0') return false;
+    return fallback;
   }
 }

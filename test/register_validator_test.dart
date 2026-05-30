@@ -16,6 +16,30 @@ void main() {
       expect(result, isNotNull);
     });
 
+    test('no uppercase letter', () {
+      final result = RegisterValidator.validatePassword(
+        'password1!',
+        'password1!',
+      );
+      expect(result, isNotNull);
+    });
+
+    test('no lowercase letter', () {
+      final result = RegisterValidator.validatePassword(
+        'PASSWORD1!',
+        'PASSWORD1!',
+      );
+      expect(result, isNotNull);
+    });
+
+    test('contains space', () {
+      final result = RegisterValidator.validatePassword(
+        'Password 1!',
+        'Password 1!',
+      );
+      expect(result, isNotNull);
+    });
+
     test('no number', () {
       final result = RegisterValidator.validatePassword('Password', 'Password');
       expect(result, isNotNull);

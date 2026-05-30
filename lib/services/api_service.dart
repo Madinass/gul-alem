@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../admin_statistics.dart';
 import '../cart_item.dart';
 import '../custom_bouquet_item.dart';
 import '../product.dart';
@@ -69,6 +70,12 @@ class ApiService {
       }
     } catch (_) {}
     return fallback;
+  }
+
+  static int _readInt(dynamic value, [int fallback = 0]) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
   static String _normalizeExpiryMonth(String value) {
@@ -243,6 +250,69 @@ class ApiService {
     throw Exception('Санаттарды жүктеу сәтсіз');
   }
 
+  static Future<Category> createCategory({
+    required String name,
+    required String imagePath,
+    String imageUrl = '',
+    int? order,
+  }) async {
+    final token = await _requireToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/categories'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'name': name,
+        'imagePath': imagePath,
+        'imageUrl': imageUrl,
+        if (order != null) 'order': order,
+      }),
+    );
+    if (await _isSuccess(response)) {
+      return Category.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Category create failed');
+  }
+
+  static Future<List<String>> fetchFlowerTypes() async {
+    final response = await http.get(Uri.parse('$baseUrl/flower-types'));
+    if (await _isSuccess(response)) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data
+          .map((item) {
+            if (item is Map<String, dynamic>) {
+              return item['name']?.toString() ?? '';
+            }
+            return item.toString();
+          })
+          .where((item) => item.trim().isNotEmpty)
+          .toList();
+    }
+    throw Exception('Flower types load failed');
+  }
+
+  static Future<String> createFlowerType(String name) async {
+    final token = await _requireToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/flower-types'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'name': name}),
+    );
+    if (await _isSuccess(response)) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) {
+        return data['name']?.toString() ?? name;
+      }
+      return name;
+    }
+    throw Exception('Flower type create failed');
+  }
+
   static Future<List<Product>> fetchProducts({
     String? categoryId,
     bool popularOnly = false,
@@ -376,6 +446,101 @@ class ApiService {
     throw Exception('Тапсырыстарды жүктеу сәтсіз');
   }
 
+  static Future<AdminStatistics> fetchAdminStatistics() async {
+    final token = await _requireToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/statistics'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (await _isSuccess(response)) {
+      return AdminStatistics.fromJson(jsonDecode(response.body));
+    }
+    try {
+      final orders = await fetchOrders();
+      final products = await fetchProducts();
+      return _buildAdminStatisticsFallback(orders, products);
+    } catch (_) {
+      throw ApiException(_responseMessage(response, 'Statistics load failed'));
+    }
+  }
+
+  static AdminStatistics _buildAdminStatisticsFallback(
+    List<dynamic> orders,
+    List<Product> products,
+  ) {
+    final productSales = <String, AdminProductSales>{};
+    for (final product in products) {
+      productSales[product.id] = AdminProductSales(
+        id: product.id,
+        name: product.name,
+        imagePath: product.imagePath,
+        imageUrl: product.imageUrl,
+        price: product.price,
+        soldQuantity: 0,
+        salesTotal: 0,
+      );
+    }
+
+    var totalSales = 0;
+    for (final rawOrder in orders) {
+      if (rawOrder is! Map) continue;
+      if (rawOrder['status']?.toString() == 'cancelled') continue;
+      totalSales += _readInt(rawOrder['total']);
+      final items = rawOrder['items'];
+      if (items is! List) continue;
+      for (final rawItem in items) {
+        if (rawItem is! Map) continue;
+        final productId = rawItem['productId']?.toString() ?? '';
+        final current = productSales[productId];
+        if (current == null) continue;
+        final quantity = _readInt(rawItem['quantity']);
+        final price = _readInt(rawItem['price'], current.price);
+        productSales[productId] = AdminProductSales(
+          id: current.id,
+          name: current.name,
+          imagePath: current.imagePath,
+          imageUrl: current.imageUrl,
+          price: current.price,
+          soldQuantity: current.soldQuantity + quantity,
+          salesTotal: current.salesTotal + price * quantity,
+        );
+      }
+    }
+
+    final soldProducts =
+        productSales.values
+            .where((product) => product.soldQuantity > 0)
+            .toList()
+          ..sort((a, b) {
+            final quantityCompare = b.soldQuantity.compareTo(a.soldQuantity);
+            if (quantityCompare != 0) return quantityCompare;
+            final totalCompare = b.salesTotal.compareTo(a.salesTotal);
+            if (totalCompare != 0) return totalCompare;
+            return a.name.compareTo(b.name);
+          });
+    final leastSoldProducts = List<AdminProductSales>.from(soldProducts)
+      ..sort((a, b) {
+        final quantityCompare = a.soldQuantity.compareTo(b.soldQuantity);
+        if (quantityCompare != 0) return quantityCompare;
+        final totalCompare = a.salesTotal.compareTo(b.salesTotal);
+        if (totalCompare != 0) return totalCompare;
+        return a.name.compareTo(b.name);
+      });
+
+    return AdminStatistics(
+      hasData: orders.isNotEmpty,
+      totalOrders: orders.length,
+      totalSales: totalSales,
+      topProduct: soldProducts.isEmpty ? null : soldProducts.first,
+      leastProduct: leastSoldProducts.isEmpty ? null : leastSoldProducts.first,
+      unsoldProducts: orders.isEmpty
+          ? const []
+          : productSales.values
+                .where((product) => product.soldQuantity == 0)
+                .toList(),
+    );
+  }
+
   static Future<void> updateOrderStatus(String orderId, String status) async {
     final token = await _requireToken();
     final response = await http.patch(
@@ -502,8 +667,8 @@ class ApiService {
 
   static Future<void> updatePopular(String productId, bool popular) async {
     final token = await _requireToken();
-    final response = await http.put(
-      Uri.parse('$baseUrl/products/$productId'),
+    final response = await http.patch(
+      Uri.parse('$baseUrl/products/$productId/popular'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -767,6 +932,7 @@ class ApiService {
   static Future<void> addCustomBouquetToCart({
     required List<Map<String, dynamic>> items,
     required String description,
+    String cardMessage = '',
     int quantity = 1,
     String? cartItemId,
   }) async {
@@ -780,6 +946,7 @@ class ApiService {
       body: jsonEncode({
         'items': items,
         'description': description,
+        'cardMessage': cardMessage,
         'quantity': quantity,
         if (cartItemId != null && cartItemId.isNotEmpty)
           'cartItemId': cartItemId,
@@ -877,6 +1044,7 @@ class ApiService {
   static Future<OrderModel> createCustomBouquetOrder({
     required List<Map<String, dynamic>> items,
     required String description,
+    String cardMessage = '',
   }) async {
     final token = await _requireToken();
     final response = await http.post(
@@ -885,7 +1053,11 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'items': items, 'description': description}),
+      body: jsonEncode({
+        'items': items,
+        'description': description,
+        'cardMessage': cardMessage,
+      }),
     );
     if (await _isSuccess(response)) {
       return OrderModel.fromJson(jsonDecode(response.body));

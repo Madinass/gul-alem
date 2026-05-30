@@ -34,6 +34,13 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
     }
   }
 
+  Future<void> _disposeControllerAfterClose(
+    TextEditingController controller,
+  ) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    controller.dispose();
+  }
+
   Future<void> _addAdmin() async {
     final t = context.t;
     final controller = TextEditingController();
@@ -84,7 +91,7 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
     );
 
     if (result != true) {
-      controller.dispose();
+      await _disposeControllerAfterClose(controller);
       return;
     }
 
@@ -100,7 +107,7 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
         ),
       );
     } finally {
-      controller.dispose();
+      await _disposeControllerAfterClose(controller);
     }
   }
 

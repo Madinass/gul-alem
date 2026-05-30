@@ -21,6 +21,7 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   final Color darkPink = const Color(0xFFE60064);
   final Color lightPink = const Color(0xFFFFE6EB);
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _cardMessageController = TextEditingController();
 
   List<CustomBouquetItem> _items = [];
   final Map<String, int> _quantities = {};
@@ -35,12 +36,14 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
   void initState() {
     super.initState();
     _descriptionController.text = widget.cartItem?.description ?? '';
+    _cardMessageController.text = widget.cartItem?.cardMessage ?? '';
     _loadItems();
   }
 
   @override
   void dispose() {
     _descriptionController.dispose();
+    _cardMessageController.dispose();
     super.dispose();
   }
 
@@ -104,6 +107,9 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     final current = _quantities[item.id] ?? 0;
     final maxQuantity = _maxQuantityForItem(item);
     final next = (current + delta).clamp(0, maxQuantity).toInt();
+    if (_isGreetingCardItem(item) && next == 0) {
+      _cardMessageController.clear();
+    }
     setState(() {
       if (next == 0) {
         _quantities.remove(item.id);
@@ -161,6 +167,11 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
       await ApiService.addCustomBouquetToCart(
         items: payload,
         description: _descriptionController.text.trim(),
+        cardMessage:
+            (_hasSelectedGreetingCard ||
+                _cardMessageController.text.trim().isNotEmpty)
+            ? _cardMessageController.text.trim()
+            : '',
         quantity: widget.cartItem?.quantity ?? 1,
         cartItemId: widget.cartItem?.id,
       );
@@ -246,11 +257,55 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
                         ),
                       ),
                     ),
+                    _buildCardMessageSection(t),
                   ],
                 ),
               ),
             ),
       bottomNavigationBar: _loading ? null : _buildBottomBar(t),
+    );
+  }
+
+  Widget _buildCardMessageSection(AppText t) {
+    if (!_hasSelectedGreetingCard &&
+        _cardMessageController.text.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 14),
+        Text(
+          t.bouquetCardMessage,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _cardMessageController,
+          minLines: 3,
+          maxLines: 5,
+          maxLength: 220,
+          buildCounter:
+              (
+                context, {
+                required currentLength,
+                required isFocused,
+                required maxLength,
+              }) => null,
+          decoration: InputDecoration(
+            hintText: t.bouquetCardMessageHint,
+            filled: true,
+            fillColor: const Color(0xFFFFF6F8),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildGreetingCardPreview(t),
+      ],
     );
   }
 
@@ -333,6 +388,146 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildGreetingCardPreview(AppText t) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _cardMessageController,
+      builder: (context, value, child) {
+        final message = value.text.trim();
+        if (!_hasSelectedGreetingCard && message.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : MediaQuery.of(context).size.width - 32;
+            final previewHeight = math.min(
+              210.0,
+              math.max(154.0, width * 0.55),
+            );
+            final title = t.customItemName(
+              'assets/custom_bouquet/custom_bouquet_card.png',
+              'Greeting card',
+            );
+            final placeholder = t.pick(
+              kz: 'Жылы тілек осы жерде көрінеді',
+              ru: 'Теплое пожелание появится здесь',
+              en: 'Your warm note will appear here',
+            );
+
+            return Container(
+              width: double.infinity,
+              height: previewHeight,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBF2),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFFFE6B8)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: 12,
+                      bottom: 10,
+                      child: Icon(
+                        Icons.local_florist_rounded,
+                        color: darkPink.withValues(alpha: 0.08),
+                        size: 58,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFFFE6B8),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.mail_outline_rounded,
+                                  color: darkPink,
+                                  size: 17,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: darkPink,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                message.isEmpty ? placeholder : message,
+                                maxLines: width < 340 ? 5 : 6,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: message.isEmpty
+                                      ? Colors.black38
+                                      : Colors.black87,
+                                  fontSize: width < 340 ? 14 : 16,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  bool get _hasSelectedGreetingCard {
+    return _items.any(
+      (item) => (_quantities[item.id] ?? 0) > 0 && _isGreetingCardItem(item),
+    );
+  }
+
+  bool _isGreetingCardItem(CustomBouquetItem item) {
+    final value = '${item.name} ${item.imagePath} ${item.imageUrl}'
+        .toLowerCase();
+    return value.contains('card') ||
+        value.contains('greeting') ||
+        value.contains('ашықхат') ||
+        value.contains('открытка');
   }
 
   List<_PreviewEntry> _previewEntries() {

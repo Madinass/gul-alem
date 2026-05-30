@@ -353,15 +353,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 child: category == null
                     ? Container(color: navBarPink)
                     : SizedBox.expand(
-                        child: Image.asset(
+                        child: _categoryImage(
                           category.imagePath,
-                          fit: BoxFit.cover,
                           alignment: const Alignment(0.35, 0),
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.local_florist,
-                            size: 51,
-                            color: darkPink,
-                          ),
+                          errorSize: 51,
                         ),
                       ),
               ),
@@ -438,19 +433,38 @@ class _CatalogScreenState extends State<CatalogScreen> {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Positioned.fill(
-                child: Image.asset(
-                  category.imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.local_florist, size: 36, color: darkPink),
-                ),
-              ),
+              Positioned.fill(child: _categoryImage(category.imagePath)),
               _buildCategoryLabel(context.t.categoryName(category)),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _categoryImage(
+    String source, {
+    AlignmentGeometry alignment = Alignment.center,
+    double errorSize = 36,
+  }) {
+    final uri = Uri.tryParse(source);
+    final isNetwork =
+        uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+    if (isNetwork) {
+      return Image.network(
+        source,
+        fit: BoxFit.cover,
+        alignment: alignment,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.local_florist, size: errorSize, color: darkPink),
+      );
+    }
+    return Image.asset(
+      source,
+      fit: BoxFit.cover,
+      alignment: alignment,
+      errorBuilder: (context, error, stackTrace) =>
+          Icon(Icons.local_florist, size: errorSize, color: darkPink),
     );
   }
 }

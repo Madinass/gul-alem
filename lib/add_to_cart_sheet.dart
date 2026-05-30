@@ -130,23 +130,15 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                       t.quantity,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: quantity > 1
-                              ? () => setState(() => quantity -= 1)
-                              : null,
-                          icon: const Icon(Icons.remove_circle_outline),
-                        ),
-                        Text('$quantity', style: const TextStyle(fontSize: 16)),
-                        IconButton(
-                          onPressed:
-                              canAddToCart && quantity < product.stockCount
-                              ? () => setState(() => quantity += 1)
-                              : null,
-                          icon: const Icon(Icons.add_circle_outline),
-                        ),
-                      ],
+                    _QuantityStepper(
+                      quantity: quantity,
+                      accentColor: darkPink,
+                      onDecrease: quantity > 1
+                          ? () => setState(() => quantity -= 1)
+                          : null,
+                      onIncrease: canAddToCart && quantity < product.stockCount
+                          ? () => setState(() => quantity += 1)
+                          : null,
                     ),
                   ],
                 ),
@@ -202,9 +194,20 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                             }
                           }
                         : null,
-                    child: Text(
-                      t.confirm,
-                      style: const TextStyle(color: Colors.white),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.shopping_cart_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.confirm,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -215,6 +218,80 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
       );
     },
   );
+}
+
+class _QuantityStepper extends StatelessWidget {
+  final int quantity;
+  final Color accentColor;
+  final VoidCallback? onDecrease;
+  final VoidCallback? onIncrease;
+
+  const _QuantityStepper({
+    required this.quantity,
+    required this.accentColor,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6F8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE6EB)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _stepButton(
+            icon: Icons.remove_rounded,
+            onPressed: onDecrease,
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(12),
+            ),
+          ),
+          SizedBox(
+            width: 42,
+            child: Text(
+              '$quantity',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+          ),
+          _stepButton(
+            icon: Icons.add_rounded,
+            onPressed: onIncrease,
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+    required BorderRadius borderRadius,
+  }) {
+    final enabled = onPressed != null;
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: borderRadius,
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Icon(
+          icon,
+          color: enabled ? accentColor : Colors.black26,
+          size: 22,
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> _showImagePreview(

@@ -18,6 +18,7 @@ class _CartScreenState extends State<CartScreen> {
   final Color darkPink = const Color(0xFFE60064);
   bool _loading = true;
   List<CartItem> _items = [];
+  final Set<String> _updatingItems = {};
 
   @override
   void initState() {
@@ -48,23 +49,34 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _updateQuantity(CartItem item, int quantity) async {
     final t = context.t;
-    if (!item.isCustom &&
-        quantity > 0 &&
-        quantity > item.product.stockCount) {
+    final updateKey = '${item.itemType}:${item.id}';
+    if (_updatingItems.contains(updateKey)) return;
+    if (!item.isCustom && quantity > 0 && quantity > item.product.stockCount) {
       return;
     }
+    setState(() => _updatingItems.add(updateKey));
     try {
-      await ApiService.updateCartItem(
-        item.id,
-        quantity: quantity,
-        itemType: item.itemType,
-      );
+      if (quantity <= 0) {
+        await ApiService.removeFromCart(item.id, itemType: item.itemType);
+      } else {
+        await ApiService.updateCartItem(
+          item.id,
+          quantity: quantity,
+          itemType: item.itemType,
+        );
+      }
       if (!mounted) return;
       setState(() {
         if (quantity <= 0) {
-          _items.removeWhere((element) => element.id == item.id);
+          _items.removeWhere(
+            (element) =>
+                element.id == item.id && element.itemType == item.itemType,
+          );
         } else {
-          final index = _items.indexWhere((element) => element.id == item.id);
+          final index = _items.indexWhere(
+            (element) =>
+                element.id == item.id && element.itemType == item.itemType,
+          );
           if (index != -1) {
             _items[index] = item.copyWith(quantity: quantity);
           }
@@ -75,6 +87,10 @@ class _CartScreenState extends State<CartScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(t.updateCartFailed)));
+    } finally {
+      if (mounted) {
+        setState(() => _updatingItems.remove(updateKey));
+      }
     }
   }
 
@@ -192,6 +208,8 @@ class _CartScreenState extends State<CartScreen> {
                     itemCount: _items.length,
                     itemBuilder: (context, index) {
                       final item = _items[index];
+                      final updateKey = '${item.itemType}:${item.id}';
+                      final updating = _updatingItems.contains(updateKey);
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
@@ -233,7 +251,20 @@ class _CartScreenState extends State<CartScreen> {
                                       item.description.isNotEmpty) ...[
                                     const SizedBox(height: 4),
                                     Text(
-                                      item.description,
+                                      t.descriptionWith(item.description),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                  if (item.isCustom &&
+                                      item.cardMessage.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      t.cardMessageWith(item.cardMessage),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
@@ -246,7 +277,9 @@ class _CartScreenState extends State<CartScreen> {
                                   Row(
                                     children: [
                                       IconButton(
-                                        onPressed: item.quantity > 1
+                                        onPressed: updating
+                                            ? null
+                                            : item.quantity > 1
                                             ? () => _updateQuantity(
                                                 item,
                                                 item.quantity - 1,
@@ -261,7 +294,9 @@ class _CartScreenState extends State<CartScreen> {
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                       IconButton(
-                                        onPressed: _canIncreaseQuantity(item)
+                                        onPressed:
+                                            !updating &&
+                                                _canIncreaseQuantity(item)
                                             ? () => _updateQuantity(
                                                 item,
                                                 item.quantity + 1,
@@ -284,6 +319,18 @@ class _CartScreenState extends State<CartScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: darkPink,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                IconButton(
+                                  tooltip: t.delete,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: updating
+                                      ? null
+                                      : () => _updateQuantity(item, 0),
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.redAccent,
                                   ),
                                 ),
                                 if (item.isCustom) ...[

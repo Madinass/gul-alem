@@ -215,8 +215,11 @@ class AppText {
     ru: 'Очистить поиск по фото',
     en: 'Clear photo search',
   );
-  String get popularFlowers =>
-      pick(kz: 'Сұраныстағы гүлдер', ru: 'Популярные цветы', en: 'Popular flowers');
+  String get popularFlowers => pick(
+    kz: 'Сұраныстағы гүлдер',
+    ru: 'Популярные цветы',
+    en: 'Popular flowers',
+  );
   String get recommendedForYou => pick(
     kz: 'Сізге арналған ұсыныстар',
     ru: 'Рекомендации для вас',
@@ -292,9 +295,16 @@ class AppText {
   String get bouquetDescription =>
       pick(kz: 'Сипаттама', ru: 'Описание', en: 'Description');
   String get bouquetDescriptionHint => pick(
-    kz: 'Түстер, стиль немесе тілек жазыңыз',
-    ru: 'Укажите цвета, стиль или пожелания',
-    en: 'Add colors, style, or notes',
+    kz: 'Түстер, стиль немесе букетке ескерту жазыңыз',
+    ru: 'Укажите цвета, стиль или примечания к букету',
+    en: 'Add colors, style, or bouquet notes',
+  );
+  String get bouquetCardMessage =>
+      pick(kz: 'Ашықхат мәтіні', ru: 'Текст открытки', en: 'Card message');
+  String get bouquetCardMessageHint => pick(
+    kz: 'Ашықхатқа жазылатын тілекті енгізіңіз',
+    ru: 'Введите пожелание для открытки',
+    en: 'Enter the note for the card',
   );
   String get submitCustomBouquet =>
       pick(kz: 'Тапсырыс жіберу', ru: 'Отправить заказ', en: 'Send order');
@@ -545,6 +555,40 @@ class AppText {
     ru: 'Управление заказами',
     en: 'Manage orders',
   );
+  String get adminStatistics =>
+      pick(kz: 'Статистика', ru: 'Статистика', en: 'Statistics');
+  String get topSellingProduct => pick(
+    kz: 'Ең көп сатылған өнім',
+    ru: 'Самый продаваемый товар',
+    en: 'Top-selling product',
+  );
+  String get leastSellingProduct => pick(
+    kz: 'Ең аз сатылған өнім',
+    ru: 'Самый редко продаваемый товар',
+    en: 'Least-selling product',
+  );
+  String get unsoldProducts => pick(
+    kz: 'Мүлде сатылмаған өнімдер',
+    ru: 'Ни разу не проданные товары',
+    en: 'Unsold products',
+  );
+  String get totalOrdersCount => pick(
+    kz: 'Жалпы тапсырыс саны',
+    ru: 'Общее количество заказов',
+    en: 'Total orders',
+  );
+  String get totalSalesAmount => pick(
+    kz: 'Жалпы сатылым сомасы',
+    ru: 'Общая сумма продаж',
+    en: 'Total sales',
+  );
+  String get dataEmpty =>
+      pick(kz: 'Деректер жоқ', ru: 'Данных нет', en: 'No data');
+  String soldCount(int count) => pick(
+    kz: '$count дана сатылды',
+    ru: 'Продано: $count шт.',
+    en: '$count sold',
+  );
   String get manageCustomItems => pick(
     kz: 'Жеке букет бөліктері',
     ru: 'Детали своего букета',
@@ -571,6 +615,34 @@ class AppText {
   String get roleSuperAdmin =>
       pick(kz: 'Бас әкімші', ru: 'Главный администратор', en: 'Super admin');
   String get products => pick(kz: 'Өнімдер', ru: 'Товары', en: 'Products');
+  String get catalogSetup => pick(
+    kz: 'Каталог баптаулары',
+    ru: 'Настройки каталога',
+    en: 'Catalog setup',
+  );
+  String get addCategory =>
+      pick(kz: 'Санат қосу', ru: 'Добавить категорию', en: 'Add category');
+  String get addFlowerType => pick(
+    kz: 'Гүл түрін қосу',
+    ru: 'Добавить вид цветка',
+    en: 'Add flower type',
+  );
+  String get newCategory =>
+      pick(kz: 'Жаңа санат', ru: 'Новая категория', en: 'New category');
+  String get newFlowerType =>
+      pick(kz: 'Жаңа гүл түрі', ru: 'Новый вид цветка', en: 'New flower type');
+  String get flowerTypes =>
+      pick(kz: 'Гүл түрлері', ru: 'Виды цветков', en: 'Flower types');
+  String get productImageRequired => pick(
+    kz: 'Өнім суретін таңдаңыз',
+    ru: 'Выберите фото товара',
+    en: 'Choose a product photo',
+  );
+  String get categoryImageRequired => pick(
+    kz: 'Санат суретін таңдаңыз',
+    ru: 'Выберите фото категории',
+    en: 'Choose a category image',
+  );
   String get newProduct =>
       pick(kz: 'Жаңа өнім', ru: 'Новый товар', en: 'New product');
   String get editProduct =>
@@ -685,6 +757,11 @@ class AppText {
     ru: 'Пароль слишком короткий',
     en: 'Password is too short',
   );
+  String get invalidLoginFormat => pick(
+    kz: 'Email немесе телефон форматы дұрыс емес.',
+    ru: 'Неверный формат email или телефона.',
+    en: 'Invalid email or phone format.',
+  );
   String get welcome =>
       pick(kz: 'Қош келдіңіз!', ru: 'Добро пожаловать!', en: 'Welcome!');
   String get loginFailed => pick(
@@ -760,9 +837,9 @@ class AppText {
     en: 'Password must contain at least one number.',
   );
   String get passwordSpecialRule => pick(
-    kz: 'Құпия сөзде кемінде бір арнайы таңба болуы керек.',
-    ru: 'Пароль должен содержать хотя бы один специальный символ.',
-    en: 'Password must contain at least one special character.',
+    kz: 'Құпиясөзде үлкен әріп, кіші әріп, сан және арнайы таңба болуы керек, бос орын қолданылмайды.',
+    ru: 'Пароль должен содержать заглавную и строчную букву, цифру и спецсимвол, без пробелов.',
+    en: 'Password must contain uppercase and lowercase letters, a number, and a special character, with no spaces.',
   );
   String get passwordsDoNotMatch => pick(
     kz: 'Құпия сөздер сәйкес келмейді!',
@@ -815,6 +892,16 @@ class AppText {
       pick(kz: 'Email адресі', ru: 'Email адрес', en: 'Email address');
   String get sendCode =>
       pick(kz: 'Код жіберу', ru: 'Отправить код', en: 'Send code');
+  String get resendCode => pick(
+    kz: 'Кодты қайта жіберу',
+    ru: 'Отправить код еще раз',
+    en: 'Resend code',
+  );
+  String resendCodeIn(int seconds) => pick(
+    kz: 'Қайта жіберу: ${seconds}s',
+    ru: 'Повторно через ${seconds}s',
+    en: 'Resend in ${seconds}s',
+  );
   String codeSentTo(String email) => pick(
     kz: '$email адресіне келген 6 таңбалы кодты енгізіңіз.',
     ru: 'Введите 6-значный код, отправленный на $email.',
@@ -824,9 +911,9 @@ class AppText {
   String get verifyCode =>
       pick(kz: 'Кодты растау', ru: 'Подтвердить код', en: 'Verify code');
   String get newPasswordHelp => pick(
-    kz: 'Жаңа құпиясөзді енгізіп, растаңыз (8-64 таңба, 1 сан және арнайы таңба).',
-    ru: 'Введите и подтвердите новый пароль (8-64 символа, 1 цифра и специальный символ).',
-    en: 'Enter and confirm a new password (8-64 characters, 1 number, and a special character).',
+    kz: 'Жаңа құпиясөзді енгізіп, растаңыз (8-64 таңба, үлкен/кіші әріп, сан, арнайы таңба, бос орынсыз).',
+    ru: 'Введите и подтвердите новый пароль (8-64 символа, верхний/нижний регистр, цифра, спецсимвол, без пробелов).',
+    en: 'Enter and confirm a new password (8-64 characters, uppercase/lowercase letters, a number, a special character, no spaces).',
   );
   String get changePassword => pick(
     kz: 'Құпиясөзді өзгерту',
@@ -881,6 +968,8 @@ class AppText {
     ru: 'Описание: $value',
     en: 'Description: $value',
   );
+  String cardMessageWith(String value) =>
+      pick(kz: 'Ашықхат: $value', ru: 'Открытка: $value', en: 'Card: $value');
   String statusWith(String value) => '$status: $value';
   String dateWith(String value) => '$date: $value';
   String quantityTotalWith(int count, String total) => pick(
@@ -1232,6 +1321,11 @@ const List<_LocaleValue> _apiErrorTexts = [
     kz: 'Құпиясөзді қалпына келтіру сәтсіз',
     ru: 'Не удалось восстановить пароль',
     en: 'Password reset failed',
+  ),
+  _LocaleValue(
+    kz: 'Жаңа құпиясөз ескі құпиясөзден өзгеше болуы керек',
+    ru: 'Новый пароль должен отличаться от старого',
+    en: 'New password must be different from old password',
   ),
   _LocaleValue(
     kz: 'Санаттарды жүктеу сәтсіз',

@@ -43,6 +43,7 @@ class CartItem {
   final Product product;
   final int quantity;
   final String description;
+  final String cardMessage;
   final String customName;
   final List<CustomCartItem> customItems;
 
@@ -52,6 +53,7 @@ class CartItem {
     required this.product,
     required this.quantity,
     this.description = '',
+    this.cardMessage = '',
     this.customName = '',
     this.customItems = const [],
   });
@@ -67,6 +69,7 @@ class CartItem {
       product: product,
       quantity: _readInt(json['quantity'], 1),
       description: json['description']?.toString() ?? '',
+      cardMessage: json['cardMessage']?.toString() ?? '',
       customName: json['customName']?.toString() ?? '',
       customItems: _readCustomItems(json['customItems']),
     );
@@ -79,6 +82,7 @@ class CartItem {
       product: product,
       quantity: quantity ?? this.quantity,
       description: description,
+      cardMessage: cardMessage,
       customName: customName,
       customItems: customItems,
     );

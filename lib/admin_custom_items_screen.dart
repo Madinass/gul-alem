@@ -42,6 +42,15 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
     }
   }
 
+  Future<void> _disposeControllersAfterClose(
+    List<TextEditingController> controllers,
+  ) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    for (final controller in controllers) {
+      controller.dispose();
+    }
+  }
+
   Future<void> _showEditor({CustomBouquetItem? item}) async {
     final t = context.t;
     final nameController = TextEditingController(text: item?.name ?? '');
@@ -250,11 +259,13 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
       },
     );
 
-    nameController.dispose();
-    priceController.dispose();
-    imageController.dispose();
-    stockController.dispose();
-    orderController.dispose();
+    await _disposeControllersAfterClose([
+      nameController,
+      priceController,
+      imageController,
+      stockController,
+      orderController,
+    ]);
 
     if (saved == true) {
       await _loadItems();
