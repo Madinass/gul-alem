@@ -40,20 +40,22 @@ class _PopularItemsScreenState extends State<PopularItemsScreen> {
     try {
       await ApiService.addToCart(product.id, quantity: 1);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Себетке қосылды')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Себетке қосылды')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Себетке қосу сәтсіз')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Себетке қосу сәтсіз')));
     }
   }
 
   String _descriptionFor(Product product) {
     final seed = '${product.flowerType} ${product.name}'.toLowerCase();
-    if (seed.contains('rose') || seed.contains('роза') || seed.contains('раушан')) {
+    if (seed.contains('rose') ||
+        seed.contains('роза') ||
+        seed.contains('раушан')) {
       return 'Раушан гүлдері — махаббат пен құрметтің белгісі. Сыйлыққа тамаша таңдау.';
     }
     if (seed.contains('tulip') || seed.contains('тюльпан')) {
@@ -82,87 +84,109 @@ class _PopularItemsScreenState extends State<PopularItemsScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Танымал гүлдер', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'Танымал гүлдер',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFE60064)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFE60064)),
+            )
           : popularProducts.isEmpty
-              ? const Center(child: Text('Танымал өнімдер табылмады'))
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  itemCount: popularProducts.length,
-                  itemBuilder: (context, index) {
-                    final product = popularProducts[index];
-                    return InkWell(
-                      onTap: () => showAddToCartSheet(context, product),
+          ? const Center(child: Text('Танымал өнімдер табылмады'))
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: popularProducts.length,
+              itemBuilder: (context, index) {
+                final product = popularProducts[index];
+                return InkWell(
+                  onTap: () => showAddToCartSheet(context, product),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: lightPink),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                      border: Border.all(color: lightPink),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.asset(
-                                product.imagePath,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Icon(Icons.local_florist, color: lightPink, size: 50),
-                              ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            product.imagePath,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.local_florist,
+                              color: lightPink,
+                              size: 50,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    product.formattedPrice,
-                                    style: TextStyle(color: darkPink, fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _descriptionFor(product),
-                                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                  ),
-                                  if (!product.inStock)
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 6),
-                                      child: Text('Қоймада жоқ',
-                                          style: TextStyle(color: Colors.red, fontSize: 12)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                product.formattedPrice,
+                                style: TextStyle(
+                                  color: darkPink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _descriptionFor(product),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (!product.inStock)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    'Қоймада жоқ',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
                                     ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => _addToCart(product),
-                              icon: Icon(Icons.add_circle, color: darkPink),
-                            ),
-                          ],
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                        IconButton(
+                          onPressed: () => _addToCart(product),
+                          icon: Icon(Icons.add_circle, color: darkPink),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

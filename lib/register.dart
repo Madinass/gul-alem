@@ -7,6 +7,7 @@ import 'login_screen.dart'; // Сақтау
 import 'main_wrapper.dart';
 import 'register_validator.dart';
 import 'services/api_service.dart';
+import 'widgets/language_switcher.dart';
 
 class RegisterApp extends StatelessWidget {
   const RegisterApp({super.key});
@@ -228,7 +229,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 10),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: LanguageSwitcher(),
+                    ),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: 100,
                       height: 100,

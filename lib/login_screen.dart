@@ -4,6 +4,7 @@ import 'forgot_password_screen.dart';
 import 'main_wrapper.dart';
 import 'register.dart';
 import 'services/api_service.dart';
+import 'widgets/language_switcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -162,7 +163,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Column(
                       children: [
-                        const SizedBox(height: 10),
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: LanguageSwitcher(),
+                        ),
+                        const SizedBox(height: 12),
                         SizedBox(
                           width: 140,
                           height: 140,
