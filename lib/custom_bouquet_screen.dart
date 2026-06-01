@@ -150,7 +150,12 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     });
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   Future<void> _submit() async {
+    _dismissKeyboard();
     final t = context.t;
     if (_selectedCount == 0) {
       ScaffoldMessenger.of(
@@ -213,52 +218,65 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFE60064)),
             )
-          : RefreshIndicator(
-              color: darkPink,
-              onRefresh: _loadItems,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBouquetPreview(),
-                    const SizedBox(height: 18),
-                    Text(
-                      t.bouquetOptions,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    for (final group in const ['flowers', 'wrapping', 'extras'])
-                      _buildGroup(t, group),
-                    const SizedBox(height: 10),
-                    Text(
-                      t.bouquetDescription,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _descriptionController,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        hintText: t.bouquetDescriptionHint,
-                        filled: true,
-                        fillColor: const Color(0xFFFFF6F8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
+          : GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _dismissKeyboard,
+              child: RefreshIndicator(
+                color: darkPink,
+                onRefresh: _loadItems,
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBouquetPreview(),
+                      const SizedBox(height: 18),
+                      Text(
+                        t.bouquetOptions,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    _buildCardMessageSection(t),
-                  ],
+                      const SizedBox(height: 12),
+                      for (final group in const [
+                        'flowers',
+                        'wrapping',
+                        'extras',
+                      ])
+                        _buildGroup(t, group),
+                      const SizedBox(height: 10),
+                      Text(
+                        t.bouquetDescription,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _descriptionController,
+                        minLines: 3,
+                        maxLines: 5,
+                        textInputAction: TextInputAction.done,
+                        onEditingComplete: _dismissKeyboard,
+                        onTapOutside: (_) => _dismissKeyboard(),
+                        decoration: InputDecoration(
+                          hintText: t.bouquetDescriptionHint,
+                          filled: true,
+                          fillColor: const Color(0xFFFFF6F8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      _buildCardMessageSection(t),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -286,6 +304,9 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
           minLines: 3,
           maxLines: 5,
           maxLength: 220,
+          textInputAction: TextInputAction.done,
+          onEditingComplete: _dismissKeyboard,
+          onTapOutside: (_) => _dismissKeyboard(),
           buildCounter:
               (
                 context, {
@@ -297,6 +318,11 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
             hintText: t.bouquetCardMessageHint,
             filled: true,
             fillColor: const Color(0xFFFFF6F8),
+            suffixIcon: IconButton(
+              tooltip: t.close,
+              icon: const Icon(Icons.keyboard_hide_outlined),
+              onPressed: _dismissKeyboard,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
