@@ -1119,6 +1119,13 @@ class AppText {
         en: 'Image upload failed',
       );
     }
+    if (message.startsWith('Failed to send reset code')) {
+      return pick(
+        kz: 'Қалпына келтіру кодын жіберу сәтсіз',
+        ru: 'Не удалось отправить код восстановления',
+        en: 'Failed to send reset code',
+      );
+    }
     final localized = _translateLocaleValue(message, _apiErrorTexts);
     return localized == message && message.isNotEmpty ? message : localized;
   }

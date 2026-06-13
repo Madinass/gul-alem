@@ -76,7 +76,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             return;
           }
           final resetToken = await ApiService.verifyResetCode(
-            _emailController.text.trim(),
+            _emailController.text.trim().toLowerCase(),
             _codeController.text,
           );
           if (!mounted) return;
@@ -131,7 +131,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             return;
           }
           await ApiService.resetPassword(
-            email: _emailController.text.trim(),
+            email: _emailController.text.trim().toLowerCase(),
             resetToken: _resetToken!,
             newPassword: _passwordController.text,
           );
@@ -299,7 +299,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       children: [
         Text(
-          t.codeSentTo(_emailController.text),
+          t.codeSentTo(_emailController.text.trim().toLowerCase()),
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.black54),
         ),
