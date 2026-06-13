@@ -28,6 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isConfirmPasswordObscured = true;
   Timer? _resendTimer;
   int _resendSeconds = 0;
+  String? _fallbackResetCode;
 
   @override
   void dispose() {
@@ -58,11 +59,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             });
             return;
           }
-          await ApiService.requestPasswordReset(email);
+          final fallbackCode = await ApiService.requestPasswordReset(email);
           if (!mounted) return;
           setState(() {
             _currentStep = ForgotPasswordStep.verifyCode;
-            _codeController.clear();
+            _fallbackResetCode = fallbackCode;
+            if (fallbackCode == null || fallbackCode.isEmpty) {
+              _codeController.clear();
+            } else {
+              _codeController.text = fallbackCode;
+            }
             _resetToken = null;
           });
           _startResendTimer();
@@ -213,12 +219,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _isSubmitting = true;
     });
     try {
-      await ApiService.requestPasswordReset(
+      final fallbackCode = await ApiService.requestPasswordReset(
         _emailController.text.trim().toLowerCase(),
       );
       if (!mounted) return;
-      _codeController.clear();
-      _resetToken = null;
+      setState(() {
+        _fallbackResetCode = fallbackCode;
+        if (fallbackCode == null || fallbackCode.isEmpty) {
+          _codeController.clear();
+        } else {
+          _codeController.text = fallbackCode;
+        }
+        _resetToken = null;
+      });
       _startResendTimer();
     } catch (error) {
       if (!mounted) return;
@@ -303,6 +316,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.black54),
         ),
+        if (_fallbackResetCode != null && _fallbackResetCode!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7FA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE60064)),
+            ),
+            child: Text(
+              t.resetCodeFallback(_fallbackResetCode!),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFFE60064),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
         TextField(
           controller: _codeController,

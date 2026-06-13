@@ -210,7 +210,7 @@ class ApiService {
     throw ApiException(_responseMessage(response, 'Тіркелу сәтсіз'));
   }
 
-  static Future<void> requestPasswordReset(String email) async {
+  static Future<String?> requestPasswordReset(String email) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/forgot-password'),
       headers: {'Content-Type': 'application/json'},
@@ -219,6 +219,12 @@ class ApiService {
     if (!await _isSuccess(response)) {
       throw ApiException(_responseMessage(response, 'Reset code send failed'));
     }
+    final data = jsonDecode(response.body);
+    if (data is Map<String, dynamic>) {
+      final resetCode = data['resetCode']?.toString().trim();
+      if (resetCode != null && resetCode.isNotEmpty) return resetCode;
+    }
+    return null;
   }
 
   static Future<String> verifyResetCode(String email, String code) async {

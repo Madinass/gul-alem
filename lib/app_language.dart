@@ -907,6 +907,11 @@ class AppText {
     ru: 'Введите 6-значный код, отправленный на $email.',
     en: 'Enter the 6-character code sent to $email.',
   );
+  String resetCodeFallback(String code) => pick(
+    kz: 'Email жіберілмеді. Қалпына келтіру коды: $code',
+    ru: 'Email не отправился. Код восстановления: $code',
+    en: 'Email was not sent. Reset code: $code',
+  );
   String get code => pick(kz: 'Код', ru: 'Код', en: 'Code');
   String get verifyCode =>
       pick(kz: 'Кодты растау', ru: 'Подтвердить код', en: 'Verify code');
