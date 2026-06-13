@@ -6,6 +6,7 @@ import 'cart_payment_screen.dart';
 import 'custom_bouquet_assets.dart';
 import 'custom_bouquet_screen.dart';
 import 'widgets/product_image.dart';
+import 'widgets/top_toast.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -84,9 +85,7 @@ class _CartScreenState extends State<CartScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.updateCartFailed)));
+      showTopToast(context, t.updateCartFailed);
     } finally {
       if (mounted) {
         setState(() => _updatingItems.remove(updateKey));

@@ -6,6 +6,7 @@ import 'app_language.dart';
 import 'custom_bouquet_item.dart';
 import 'services/api_service.dart';
 import 'services/image_upload_service.dart';
+import 'widgets/top_toast.dart';
 
 class AdminCustomItemsScreen extends StatefulWidget {
   const AdminCustomItemsScreen({super.key});
@@ -278,11 +279,10 @@ class _AdminCustomItemsScreenState extends State<AdminCustomItemsScreen> {
       await _loadItems();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t.errorWith(error)),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopToast(
+        context,
+        context.t.errorWith(error),
+        backgroundColor: Colors.redAccent,
       );
     }
   }

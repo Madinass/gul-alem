@@ -5,6 +5,7 @@ import 'main_wrapper.dart';
 import 'register.dart';
 import 'services/api_service.dart';
 import 'widgets/language_switcher.dart';
+import 'widgets/top_toast.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -106,9 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    showTopToast(context, message, backgroundColor: color);
   }
 
   void _showForgotPasswordFlow(BuildContext context) {

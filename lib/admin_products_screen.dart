@@ -9,6 +9,7 @@ import 'category.dart';
 import 'services/api_service.dart';
 import 'services/image_upload_service.dart';
 import 'widgets/product_image.dart';
+import 'widgets/top_toast.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   final Future<List<Product>> Function() fetchProducts;
@@ -544,11 +545,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       await _loadData();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t.errorWith(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopToast(
+        context,
+        context.t.errorWith(e),
+        backgroundColor: Colors.redAccent,
       );
     }
   }
@@ -561,11 +561,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       await _loadData();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t.errorWith(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopToast(
+        context,
+        context.t.errorWith(e),
+        backgroundColor: Colors.redAccent,
       );
     } finally {
       if (mounted) {
@@ -580,11 +579,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       await _loadData();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t.errorWith(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopToast(
+        context,
+        context.t.errorWith(e),
+        backgroundColor: Colors.redAccent,
       );
     }
   }

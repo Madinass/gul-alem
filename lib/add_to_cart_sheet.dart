@@ -3,6 +3,7 @@ import 'app_language.dart';
 import 'product.dart';
 import 'services/api_service.dart';
 import 'widgets/product_image.dart';
+import 'widgets/top_toast.dart';
 
 Future<void> showAddToCartSheet(BuildContext context, Product product) async {
   final darkPink = const Color(0xFFE60064);
@@ -181,15 +182,11 @@ Future<void> showAddToCartSheet(BuildContext context, Product product) async {
                               );
                               if (context.mounted) {
                                 Navigator.of(context).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(t.addedToCart)),
-                                );
+                                showTopToast(context, t.addedToCart);
                               }
                             } catch (_) {
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(t.addToCartFailed)),
-                                );
+                                showTopToast(context, t.addToCartFailed);
                               }
                             }
                           }

@@ -12,6 +12,7 @@ import 'order_model.dart';
 import 'payment_card_input.dart';
 import 'services/api_service.dart';
 import 'widgets/order_items_gallery.dart';
+import 'widgets/top_toast.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -100,9 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showTopToast(context, message);
   }
 
   Future<void> _openPaymentForm({String? methodId}) async {

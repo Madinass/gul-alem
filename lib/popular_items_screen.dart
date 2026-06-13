@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'add_to_cart_sheet.dart';
 import 'product.dart';
 import 'services/api_service.dart';
+import 'widgets/top_toast.dart';
 
 class PopularItemsScreen extends StatefulWidget {
   const PopularItemsScreen({super.key});
@@ -40,14 +41,10 @@ class _PopularItemsScreenState extends State<PopularItemsScreen> {
     try {
       await ApiService.addToCart(product.id, quantity: 1);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Себетке қосылды')));
+      showTopToast(context, 'Себетке қосылды');
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Себетке қосу сәтсіз')));
+      showTopToast(context, 'Себетке қосу сәтсіз');
     }
   }
 

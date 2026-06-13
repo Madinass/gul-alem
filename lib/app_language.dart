@@ -1159,7 +1159,10 @@ class AppText {
   }
 
   String productName(Product product) {
-    final key = product.imagePath;
+    final name = product.name.trim();
+    if (name.isNotEmpty) return productNameText(name);
+
+    final key = product.imagePath.trim();
     final map = _productNames[key];
     if (map != null) return pick(kz: map.kz, ru: map.ru, en: map.en);
     return product.name;
@@ -1293,9 +1296,19 @@ const List<_LocaleValue> _apiErrorTexts = [
     en: 'Invalid email',
   ),
   _LocaleValue(
+    kz: 'Бұл email бойынша аккаунт табылмады',
+    ru: 'Аккаунт с таким email не найден',
+    en: 'No account found for email',
+  ),
+  _LocaleValue(
     kz: 'Құпиясөз талаптарға сәйкес емес',
     ru: 'Пароль не соответствует требованиям',
     en: 'Password does not meet requirements',
+  ),
+  _LocaleValue(
+    kz: 'Қажетті өрістер толтырылмады',
+    ru: 'Заполнены не все обязательные поля',
+    en: 'Missing fields',
   ),
   _LocaleValue(
     kz: 'Қажетті өрістер толтырылмады',
@@ -1318,9 +1331,19 @@ const List<_LocaleValue> _apiErrorTexts = [
     en: 'Code verification failed',
   ),
   _LocaleValue(
+    kz: 'Код қате немесе мерзімі өткен',
+    ru: 'Код неверный или истек',
+    en: 'Invalid or expired code',
+  ),
+  _LocaleValue(
     kz: 'Құпиясөзді қалпына келтіру сәтсіз',
     ru: 'Не удалось восстановить пароль',
     en: 'Password reset failed',
+  ),
+  _LocaleValue(
+    kz: 'Қалпына келтіру мерзімі өтті. Жаңа код сұраңыз',
+    ru: 'Срок восстановления истек. Запросите новый код',
+    en: 'Invalid or expired reset token',
   ),
   _LocaleValue(
     kz: 'Жаңа құпиясөз ескі құпиясөзден өзгеше болуы керек',
@@ -1761,9 +1784,9 @@ const Map<String, _LocaleValue> _productNames = {
     en: 'Money bouquet',
   ),
   'assets/product_bear_bouquet.png': _LocaleValue(
-    kz: 'Аю букеті',
-    ru: 'Букет с мишкой',
-    en: 'Bear bouquet',
+    kz: 'Аю мен гүл букеті',
+    ru: 'Букет с мишкой и цветами',
+    en: 'Bear and flower bouquet',
   ),
   'assets/product_flower_umbrella1.png': _LocaleValue(
     kz: 'Гүл қолшатырлары',

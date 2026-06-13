@@ -9,6 +9,7 @@ import 'filter_options.dart';
 import 'product.dart';
 import 'services/api_service.dart';
 import 'widgets/product_card.dart';
+import 'widgets/top_toast.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -106,10 +107,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
-        ),
+      showTopToast(
+        context,
+        isFav ? t.removeFavoriteFailed : t.addFavoriteFailed,
       );
     }
   }
@@ -119,14 +119,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
     try {
       await ApiService.addToCart(product.id, quantity: 1);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
+      showTopToast(context, t.addedToCart);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
+      showTopToast(context, t.addToCartFailed);
     }
   }
 

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'services/api_service.dart';
 import 'app_language.dart';
 
-enum ForgotPasswordStep { enterPhone, verifyCode, setNewPassword, success }
+enum ForgotPasswordStep { enterEmail, verifyCode, setNewPassword, success }
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -15,7 +15,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  ForgotPasswordStep _currentStep = ForgotPasswordStep.enterPhone;
+  ForgotPasswordStep _currentStep = ForgotPasswordStep.enterEmail;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -49,8 +49,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       switch (_currentStep) {
-        case ForgotPasswordStep.enterPhone:
-          final email = _emailController.text.trim();
+        case ForgotPasswordStep.enterEmail:
+          final email = _emailController.text.trim().toLowerCase();
           final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
           if (!emailOk) {
             setState(() {
@@ -63,6 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           setState(() {
             _currentStep = ForgotPasswordStep.verifyCode;
             _codeController.clear();
+            _resetToken = null;
           });
           _startResendTimer();
           return;
@@ -161,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _prevStep() {
-    if (_currentStep == ForgotPasswordStep.enterPhone) {
+    if (_currentStep == ForgotPasswordStep.enterEmail) {
       Navigator.of(context).pop();
       return;
     }
@@ -171,7 +172,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         case ForgotPasswordStep.verifyCode:
           _resendTimer?.cancel();
           _resendSeconds = 0;
-          _currentStep = ForgotPasswordStep.enterPhone;
+          _currentStep = ForgotPasswordStep.enterEmail;
           break;
         case ForgotPasswordStep.setNewPassword:
           _currentStep = ForgotPasswordStep.verifyCode;
@@ -179,7 +180,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         case ForgotPasswordStep.success:
           _currentStep = ForgotPasswordStep.setNewPassword;
           break;
-        case ForgotPasswordStep.enterPhone:
+        case ForgotPasswordStep.enterEmail:
           break;
       }
     });
@@ -212,9 +213,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _isSubmitting = true;
     });
     try {
-      await ApiService.requestPasswordReset(_emailController.text.trim());
+      await ApiService.requestPasswordReset(
+        _emailController.text.trim().toLowerCase(),
+      );
       if (!mounted) return;
       _codeController.clear();
+      _resetToken = null;
       _startResendTimer();
     } catch (error) {
       if (!mounted) return;
@@ -232,7 +236,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   String _title(AppText t) {
     switch (_currentStep) {
-      case ForgotPasswordStep.enterPhone:
+      case ForgotPasswordStep.enterEmail:
         return t.forgotEmailTitle;
       case ForgotPasswordStep.verifyCode:
         return t.verifyCodeTitle;
@@ -245,7 +249,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _buildStepContent(BuildContext context) {
     switch (_currentStep) {
-      case ForgotPasswordStep.enterPhone:
+      case ForgotPasswordStep.enterEmail:
         return _buildEmailInputStep();
       case ForgotPasswordStep.verifyCode:
         return _buildCodeVerificationStep();
@@ -269,6 +273,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_isSubmitting) _nextStep();
+          },
           decoration: InputDecoration(
             hintText: t.emailAddress,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

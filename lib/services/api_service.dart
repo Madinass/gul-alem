@@ -113,6 +113,11 @@ class ApiService {
     await prefs.remove('auth_name');
   }
 
+  static Future<bool> hasStoredSession() async {
+    final token = await _getToken();
+    return token != null && token.isNotEmpty;
+  }
+
   static Future<void> rememberDeliveryAddress(String address) async {
     final normalized = address.trim();
     if (normalized.isEmpty) return;
@@ -140,6 +145,10 @@ class ApiService {
   }
 
   static Future<bool> hasValidSession() async {
+    return await validateStoredSession() ?? false;
+  }
+
+  static Future<bool?> validateStoredSession() async {
     final token = await _getToken();
     if (token == null || token.isEmpty) return false;
     try {
@@ -157,8 +166,11 @@ class ApiService {
         );
         return true;
       }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        return false;
+      }
     } catch (_) {}
-    return false;
+    return null;
   }
 
   static Future<Map<String, dynamic>> login(

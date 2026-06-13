@@ -8,6 +8,7 @@ import 'main_wrapper.dart';
 import 'register_validator.dart';
 import 'services/api_service.dart';
 import 'widgets/language_switcher.dart';
+import 'widgets/top_toast.dart';
 
 class RegisterApp extends StatelessWidget {
   const RegisterApp({super.key});
@@ -56,9 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final confirmPassword = confirmPasswordController.text;
 
     void showValidationError(String message) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+      showTopToast(context, message, backgroundColor: Colors.red);
     }
 
     if (!RegisterValidator.isValidFullName(name)) {
@@ -113,11 +112,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.registrationSuccess),
-          backgroundColor: Colors.green,
-        ),
+      showTopToast(
+        context,
+        t.registrationSuccess,
+        backgroundColor: Colors.green,
       );
 
       Navigator.pushReplacement(
@@ -126,11 +124,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.localizedErrorMessage(e)),
-          backgroundColor: Colors.red,
-        ),
+      showTopToast(
+        context,
+        t.localizedErrorMessage(e),
+        backgroundColor: Colors.red,
       );
     } finally {
       if (mounted) {

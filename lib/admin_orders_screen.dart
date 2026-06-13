@@ -4,6 +4,7 @@ import 'app_language.dart';
 import 'order_model.dart';
 import 'services/api_service.dart';
 import 'widgets/order_items_gallery.dart';
+import 'widgets/top_toast.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -58,11 +59,10 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       await _loadOrders();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t.errorWith(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopToast(
+        context,
+        context.t.errorWith(e),
+        backgroundColor: Colors.redAccent,
       );
     }
   }

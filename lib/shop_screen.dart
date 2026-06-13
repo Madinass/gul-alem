@@ -3,7 +3,9 @@ import 'add_to_cart_sheet.dart';
 import 'app_language.dart';
 import 'product.dart';
 import 'services/api_service.dart';
+import 'widgets/notification_badge_button.dart';
 import 'widgets/product_card.dart';
+import 'widgets/top_toast.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -67,10 +69,9 @@ class _ShopScreenState extends State<ShopScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
-        ),
+      showTopToast(
+        context,
+        isFav ? t.removeFavoriteFailed : t.addFavoriteFailed,
       );
     }
   }
@@ -80,14 +81,10 @@ class _ShopScreenState extends State<ShopScreen> {
     try {
       await ApiService.addToCart(product.id, quantity: 1);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
+      showTopToast(context, t.addedToCart);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
+      showTopToast(context, t.addToCartFailed);
     }
   }
 
@@ -121,10 +118,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                     ],
                   ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.notifications_none, size: 28),
-                  ),
+                  const NotificationBadgeButton(size: 28),
                 ],
               ),
             ),

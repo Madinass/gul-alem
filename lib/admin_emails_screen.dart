@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_language.dart';
 import 'services/api_service.dart';
+import 'widgets/top_toast.dart';
 
 class AdminEmailsScreen extends StatefulWidget {
   const AdminEmailsScreen({super.key});
@@ -100,12 +101,7 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
       await _loadAdmins();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.errorWith(e)),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      showTopToast(context, t.errorWith(e), backgroundColor: Colors.redAccent);
     } finally {
       await _disposeControllerAfterClose(controller);
     }
@@ -117,11 +113,10 @@ class _AdminEmailsScreenState extends State<AdminEmailsScreen> {
       await _loadAdmins();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t.errorWith(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopToast(
+        context,
+        context.t.errorWith(e),
+        backgroundColor: Colors.redAccent,
       );
     }
   }

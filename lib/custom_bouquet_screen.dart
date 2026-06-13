@@ -6,6 +6,7 @@ import 'app_language.dart';
 import 'cart_item.dart';
 import 'custom_bouquet_item.dart';
 import 'services/api_service.dart';
+import 'widgets/top_toast.dart';
 
 class CustomBouquetScreen extends StatefulWidget {
   final CartItem? cartItem;
@@ -158,9 +159,7 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
     _dismissKeyboard();
     final t = context.t;
     if (_selectedCount == 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.chooseAtLeastOneCustomItem)));
+      showTopToast(context, t.chooseAtLeastOneCustomItem);
       return;
     }
     setState(() => _submitting = true);
@@ -181,15 +180,11 @@ class _CustomBouquetScreenState extends State<CustomBouquetScreen> {
         cartItemId: widget.cartItem?.id,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditingCartItem ? t.success : t.addedToCart)),
-      );
+      showTopToast(context, _isEditingCartItem ? t.success : t.addedToCart);
       Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
+      showTopToast(context, t.addToCartFailed);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

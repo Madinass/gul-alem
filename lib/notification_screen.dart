@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'app_language.dart';
 import 'notification_item.dart';
@@ -29,9 +31,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _notifications = data;
         _loading = false;
       });
+      unawaited(_markUnreadNotificationsRead(data));
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _markUnreadNotificationsRead(
+    List<NotificationItem> notifications,
+  ) async {
+    for (final item in notifications.where((item) => !item.read)) {
+      try {
+        await ApiService.markNotificationRead(item.id);
+      } catch (_) {
+        return;
+      }
     }
   }
 
@@ -104,7 +119,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: item.read ? Colors.white : const Color(0xFFFFF7FA),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFFFFE6EB)),
                     boxShadow: [
@@ -121,6 +136,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          if (!item.read) ...[
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE60064),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                           Expanded(
                             child: Text(
                               t.notificationText(item.title),

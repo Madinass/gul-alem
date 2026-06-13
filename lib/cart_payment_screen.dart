@@ -8,6 +8,7 @@ import 'cart_item.dart';
 import 'payment_method_form_screen.dart';
 import 'pickup_stores.dart';
 import 'services/api_service.dart';
+import 'widgets/top_toast.dart';
 
 enum DeliveryMethod { pickup, courier }
 
@@ -119,9 +120,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
       await _loadMethods();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.deletePaymentMethodFailed)));
+      showTopToast(context, t.deletePaymentMethodFailed);
     } finally {
       if (mounted) {
         setState(() => _deletingMethodIds.remove(id));
@@ -184,27 +183,26 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
 
   Future<void> _confirmPayment() async {
     final t = context.t;
-    final messenger = ScaffoldMessenger.of(context);
 
     if (_deliveryMethod == DeliveryMethod.pickup &&
         _selectedPickupStore == null) {
-      messenger.showSnackBar(SnackBar(content: Text(t.selectPickupStore)));
+      showTopToast(context, t.selectPickupStore);
       return;
     }
 
     final deliveryAddress = _deliveryAddressController.text.trim();
     if (_deliveryMethod == DeliveryMethod.courier && deliveryAddress.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(t.enterDeliveryAddress)));
+      showTopToast(context, t.enterDeliveryAddress);
       return;
     }
 
     if (_methods.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(t.addPaymentMethodFirst)));
+      showTopToast(context, t.addPaymentMethodFirst);
       return;
     }
     final selectedPaymentMethodId = _selectedId;
     if (selectedPaymentMethodId == null || selectedPaymentMethodId.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(t.choosePaymentMethod)));
+      showTopToast(context, t.choosePaymentMethod);
       return;
     }
 
@@ -245,7 +243,7 @@ class _CartPaymentScreenState extends State<CartPaymentScreen> {
       Navigator.pop(context);
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(t.paymentFailed)));
+      showTopToast(context, t.paymentFailed);
     } finally {
       if (mounted) setState(() => _processing = false);
     }

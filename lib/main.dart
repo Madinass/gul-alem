@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
@@ -8,14 +10,16 @@ import 'services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  final hasSession = await ApiService.hasValidSession();
   final languageController = AppLanguageController();
-  await languageController.load();
+  final hasStoredSession = ApiService.hasStoredSession();
+  await Future.wait<void>([
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+    languageController.load(),
+  ]);
   runApp(
     AppLanguageScope(
       controller: languageController,
-      child: MyApp(initialHasSession: hasSession),
+      child: MyApp(initialHasSession: await hasStoredSession),
     ),
   );
 }
@@ -43,8 +47,41 @@ class MyApp extends StatelessWidget {
         textTheme: textTheme,
         primaryTextTheme: _bolderTextTheme(baseTheme.primaryTextTheme),
       ),
-      home: initialHasSession ? const MainWrapper() : const HomeScreen(),
+      home: _SessionGate(initialHasSession: initialHasSession),
     );
+  }
+}
+
+class _SessionGate extends StatefulWidget {
+  final bool initialHasSession;
+
+  const _SessionGate({required this.initialHasSession});
+
+  @override
+  State<_SessionGate> createState() => _SessionGateState();
+}
+
+class _SessionGateState extends State<_SessionGate> {
+  late bool _hasSession;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasSession = widget.initialHasSession;
+    if (_hasSession) {
+      unawaited(_validateSession());
+    }
+  }
+
+  Future<void> _validateSession() async {
+    final isValid = await ApiService.validateStoredSession();
+    if (!mounted || isValid != false) return;
+    setState(() => _hasSession = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _hasSession ? const MainWrapper() : const HomeScreen();
   }
 }
 

@@ -6,9 +6,10 @@ import 'chat_screen.dart';
 import 'custom_bouquet_assets.dart';
 import 'custom_bouquet_screen.dart';
 import 'services/api_service.dart';
-import 'notification_screen.dart';
 import 'app_language.dart';
+import 'widgets/notification_badge_button.dart';
 import 'widgets/product_card.dart';
+import 'widgets/top_toast.dart';
 
 class BasBetScreen extends StatefulWidget {
   final VoidCallback? onOpenCatalog;
@@ -47,9 +48,8 @@ class _BasBetScreenState extends State<BasBetScreen>
       vsync: this,
       duration: const Duration(seconds: 14),
     )..repeat();
-    _loadPopular();
+    _loadProducts();
     _loadRecommendations();
-    _loadAllProducts();
     _loadFavorites();
   }
 
@@ -60,17 +60,22 @@ class _BasBetScreenState extends State<BasBetScreen>
     super.dispose();
   }
 
-  Future<void> _loadPopular() async {
+  Future<void> _loadProducts() async {
     try {
-      final data = await ApiService.fetchProducts(popularOnly: true);
+      final data = await ApiService.fetchProducts();
       if (!mounted) return;
       setState(() {
-        popularProducts = data;
+        allProducts = data;
+        popularProducts = data.where((product) => product.popular).toList();
         _loadingPopular = false;
+        _loadingAll = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingPopular = false);
+      setState(() {
+        _loadingPopular = false;
+        _loadingAll = false;
+      });
     }
   }
 
@@ -85,20 +90,6 @@ class _BasBetScreenState extends State<BasBetScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingRecommendations = false);
-    }
-  }
-
-  Future<void> _loadAllProducts() async {
-    try {
-      final data = await ApiService.fetchProducts();
-      if (!mounted) return;
-      setState(() {
-        allProducts = data;
-        _loadingAll = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingAll = false);
     }
   }
 
@@ -131,10 +122,9 @@ class _BasBetScreenState extends State<BasBetScreen>
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isFav ? t.removeFavoriteFailed : t.addFavoriteFailed),
-        ),
+      showTopToast(
+        context,
+        isFav ? t.removeFavoriteFailed : t.addFavoriteFailed,
       );
     }
   }
@@ -144,14 +134,10 @@ class _BasBetScreenState extends State<BasBetScreen>
     try {
       await ApiService.addToCart(product.id, quantity: 1);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
+      showTopToast(context, t.addedToCart);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.addToCartFailed)));
+      showTopToast(context, t.addToCartFailed);
     }
   }
 
@@ -236,9 +222,7 @@ class _BasBetScreenState extends State<BasBetScreen>
         _photoSearching = false;
         _photoSearchActive = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.photoSearchFailed)));
+      showTopToast(context, t.photoSearchFailed);
     }
   }
 
@@ -304,19 +288,7 @@ class _BasBetScreenState extends State<BasBetScreen>
           ],
         ),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ),
-              );
-            },
-          ),
-        ],
+        actions: [const NotificationBadgeButton(color: Colors.black)],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -560,10 +532,7 @@ class _BasBetScreenState extends State<BasBetScreen>
                 minimumSize: const Size(0, 36),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text(
-                t.more,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(t.more, style: const TextStyle(fontSize: 14)),
             ),
         ],
       ),

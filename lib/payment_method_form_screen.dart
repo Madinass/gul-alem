@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'app_language.dart';
 import 'payment_card_input.dart';
 import 'services/api_service.dart';
+import 'widgets/top_toast.dart';
 
 class PaymentMethodFormScreen extends StatefulWidget {
   const PaymentMethodFormScreen({super.key});
@@ -46,9 +47,7 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
       errorMessage = t.invalidCvv;
     }
     if (errorMessage != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      showTopToast(context, errorMessage);
       return;
     }
     final validExpiry = expiry!;
@@ -65,9 +64,7 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
       Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.savePaymentMethodFailed)));
+      showTopToast(context, t.savePaymentMethodFailed);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
