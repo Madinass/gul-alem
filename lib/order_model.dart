@@ -42,6 +42,9 @@ class OrderCustomItem {
 class OrderItem {
   final String productId;
   final String name;
+  final String nameKz;
+  final String nameRu;
+  final String nameEn;
   final String imagePath;
   final String imageUrl;
   final int price;
@@ -53,6 +56,9 @@ class OrderItem {
   OrderItem({
     required this.productId,
     required this.name,
+    this.nameKz = '',
+    this.nameRu = '',
+    this.nameEn = '',
     required this.imagePath,
     required this.imageUrl,
     required this.price,
@@ -67,6 +73,9 @@ class OrderItem {
     return OrderItem(
       productId: json['productId']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
+      nameKz: json['nameKz']?.toString() ?? '',
+      nameRu: json['nameRu']?.toString() ?? '',
+      nameEn: json['nameEn']?.toString() ?? '',
       imagePath: json['imagePath']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
       price: _readInt(json['price']),

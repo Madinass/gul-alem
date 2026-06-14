@@ -622,6 +622,9 @@ class ApiService {
       },
       body: jsonEncode({
         'name': product.name,
+        'nameKz': product.nameKz,
+        'nameRu': product.nameRu,
+        'nameEn': product.nameEn,
         'price': product.price,
         'imagePath': product.imagePath,
         'imageUrl': product.imageUrl,
@@ -648,6 +651,9 @@ class ApiService {
       },
       body: jsonEncode({
         'name': product.name,
+        'nameKz': product.nameKz,
+        'nameRu': product.nameRu,
+        'nameEn': product.nameEn,
         'price': product.price,
         'imagePath': product.imagePath,
         'imageUrl': product.imageUrl,

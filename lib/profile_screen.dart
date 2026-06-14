@@ -30,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<dynamic> _paymentMethods = [];
   bool _ordersLoading = false;
   List<OrderModel> _orders = [];
+  bool _ordersExpanded = false;
 
   @override
   void initState() {
@@ -89,6 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _orders = data;
+        if (_orders.length <= 1) _ordersExpanded = false;
       });
     } catch (_) {
       if (!mounted) return;
@@ -495,114 +497,181 @@ class _ProfileScreenState extends State<ProfileScreen> {
         else if (_orders.isEmpty)
           Text(t.ordersEmpty, style: const TextStyle(color: Colors.black54))
         else
-          ..._orders.map((order) {
-            final count = order.items.isNotEmpty
-                ? order.items.fold<int>(0, (sum, item) => sum + item.quantity)
-                : order.customItems.fold<int>(
-                    0,
-                    (sum, item) => sum + item.quantity,
-                  );
-            final customDetailItems = OrderCustomDetails.itemsFromOrder(order);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: lightPink),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildOrderFeatureBadges(order),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          order.orderType == 'custom'
-                              ? t.customOrderLabel
-                              : t.orderMade,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(t.dateWith(_formatDate(order.createdAt))),
-                  const SizedBox(height: 6),
-                  Text(t.quantityTotalWith(count, t.priceValue(order.total))),
-                  if (order.description.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(t.descriptionWith(order.description)),
-                  ],
-                  if (order.cardMessage.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(t.cardMessageWith(order.cardMessage)),
-                  ],
-                  if (customDetailItems.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    OrderCustomDetails(items: customDetailItems),
-                  ],
-                  const SizedBox(height: 6),
-                  Text(
-                    order.deliveryMethod == 'courier'
-                        ? t.deliveryMethodWith(t.courierDelivery)
-                        : t.deliveryMethodWith(t.pickupFromStore),
-                  ),
-                  if (order.deliveryMethod == 'pickup' &&
-                      order.pickupStore != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      [
-                            t.pickupStoreName(
-                              order.pickupStore?['id'],
-                              order.pickupStore?['name'],
-                            ),
-                            t.pickupStoreAddress(
-                              order.pickupStore?['id'],
-                              order.pickupStore?['address'],
-                            ),
-                          ]
-                          .whereType<String>()
-                          .where((value) => value.isNotEmpty)
-                          .join(' - '),
-                      style: const TextStyle(color: Colors.black54),
-                    ),
-                  ],
-                  if (order.deliveryMethod == 'courier' &&
-                      (order.deliveryAddress ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      t.deliveryAddressWith(order.deliveryAddress ?? ''),
-                      style: const TextStyle(color: Colors.black54),
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Text(
-                    t.statusWith(_orderStatusLabel(order.status)),
-                    style: TextStyle(
-                      color: darkPink,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  OrderItemsGallery.fromOrder(order),
-                ],
-              ),
-            );
-          }),
+          ..._buildOrderHistoryContent(darkPink, lightPink),
       ],
+    );
+  }
+
+  List<Widget> _buildOrderHistoryContent(Color darkPink, Color lightPink) {
+    final hasMoreOrders = _orders.length > 1;
+    final visibleOrders = _ordersExpanded ? _orders : _orders.take(1);
+
+    return [
+      for (final order in visibleOrders)
+        _buildOrderCard(order, darkPink: darkPink, lightPink: lightPink),
+      if (!_ordersExpanded && hasMoreOrders) ...[
+        _buildFadedOrderPreview(_orders[1], darkPink, lightPink),
+        _buildOrdersToggleButton(
+          icon: Icons.keyboard_arrow_down_rounded,
+          label: context.t.more,
+          onPressed: () => setState(() => _ordersExpanded = true),
+        ),
+      ],
+      if (_ordersExpanded && hasMoreOrders)
+        _buildOrdersToggleButton(
+          icon: Icons.keyboard_arrow_up_rounded,
+          label: context.t.close,
+          onPressed: () => setState(() => _ordersExpanded = false),
+        ),
+    ];
+  }
+
+  Widget _buildFadedOrderPreview(
+    OrderModel order,
+    Color darkPink,
+    Color lightPink,
+  ) {
+    return Opacity(
+      opacity: 0.38,
+      child: IgnorePointer(
+        child: _buildOrderCard(order, darkPink: darkPink, lightPink: lightPink),
+      ),
+    );
+  }
+
+  Widget _buildOrdersToggleButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE60064),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+              side: const BorderSide(color: Color(0xFFFFE6EB)),
+            ),
+          ),
+          onPressed: onPressed,
+          icon: Icon(icon, size: 28),
+          label: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(
+    OrderModel order, {
+    required Color darkPink,
+    required Color lightPink,
+  }) {
+    final t = context.t;
+    final count = order.items.isNotEmpty
+        ? order.items.fold<int>(0, (sum, item) => sum + item.quantity)
+        : order.customItems.fold<int>(0, (sum, item) => sum + item.quantity);
+    final customDetailItems = OrderCustomDetails.itemsFromOrder(order);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: lightPink),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildOrderFeatureBadges(order),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  order.orderType == 'custom'
+                      ? t.customOrderLabel
+                      : t.orderMade,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(t.dateWith(_formatDate(order.createdAt))),
+          const SizedBox(height: 6),
+          Text(t.quantityTotalWith(count, t.priceValue(order.total))),
+          if (order.description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(t.descriptionWith(order.description)),
+          ],
+          if (order.cardMessage.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(t.cardMessageWith(order.cardMessage)),
+          ],
+          if (customDetailItems.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            OrderCustomDetails(items: customDetailItems),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            order.deliveryMethod == 'courier'
+                ? t.deliveryMethodWith(t.courierDelivery)
+                : t.deliveryMethodWith(t.pickupFromStore),
+          ),
+          if (order.deliveryMethod == 'pickup' &&
+              order.pickupStore != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              [
+                    t.pickupStoreName(
+                      order.pickupStore?['id'],
+                      order.pickupStore?['name'],
+                    ),
+                    t.pickupStoreAddress(
+                      order.pickupStore?['id'],
+                      order.pickupStore?['address'],
+                    ),
+                  ]
+                  .whereType<String>()
+                  .where((value) => value.isNotEmpty)
+                  .join(' - '),
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ],
+          if (order.deliveryMethod == 'courier' &&
+              (order.deliveryAddress ?? '').isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              t.deliveryAddressWith(order.deliveryAddress ?? ''),
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            t.statusWith(_orderStatusLabel(order.status)),
+            style: TextStyle(color: darkPink, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          OrderItemsGallery.fromOrder(order),
+        ],
+      ),
     );
   }
 

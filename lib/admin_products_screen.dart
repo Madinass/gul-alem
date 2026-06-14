@@ -108,7 +108,21 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   Future<void> _showEditor({Product? product}) async {
     final t = context.t;
     final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(text: product?.name ?? '');
+    String initialLocalizedName(String value) {
+      final localized = value.trim();
+      if (localized.isNotEmpty) return localized;
+      return product?.name.trim() ?? '';
+    }
+
+    final nameKzController = TextEditingController(
+      text: initialLocalizedName(product?.nameKz ?? ''),
+    );
+    final nameRuController = TextEditingController(
+      text: initialLocalizedName(product?.nameRu ?? ''),
+    );
+    final nameEnController = TextEditingController(
+      text: initialLocalizedName(product?.nameEn ?? ''),
+    );
     final priceController = TextEditingController(
       text: product?.price.toString() ?? '',
     );
@@ -240,7 +254,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
                 final updated = Product(
                   id: product?.id ?? '',
-                  name: nameController.text.trim(),
+                  name: nameKzController.text.trim(),
+                  nameKz: nameKzController.text.trim(),
+                  nameRu: nameRuController.text.trim(),
+                  nameEn: nameEnController.text.trim(),
                   price: int.parse(priceController.text.trim()),
                   imagePath: imagePath,
                   imageUrl: imageUrl,
@@ -362,11 +379,31 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                               ),
                             ),
                             TextFormField(
-                              controller: nameController,
+                              controller: nameKzController,
                               enabled: !saving,
                               textInputAction: TextInputAction.next,
                               validator: requiredValidator,
-                              decoration: InputDecoration(labelText: t.name),
+                              decoration: InputDecoration(
+                                labelText: '${t.name} (${t.kazakh})',
+                              ),
+                            ),
+                            TextFormField(
+                              controller: nameRuController,
+                              enabled: !saving,
+                              textInputAction: TextInputAction.next,
+                              validator: requiredValidator,
+                              decoration: InputDecoration(
+                                labelText: '${t.name} (${t.russian})',
+                              ),
+                            ),
+                            TextFormField(
+                              controller: nameEnController,
+                              enabled: !saving,
+                              textInputAction: TextInputAction.next,
+                              validator: requiredValidator,
+                              decoration: InputDecoration(
+                                labelText: '${t.name} (${t.english})',
+                              ),
                             ),
                             TextFormField(
                               controller: priceController,
@@ -524,7 +561,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
 
     await _disposeControllersAfterClose([
-      nameController,
+      nameKzController,
+      nameRuController,
+      nameEnController,
       priceController,
       imageController,
       stockController,

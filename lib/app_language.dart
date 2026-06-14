@@ -1171,6 +1171,13 @@ class AppText {
   }
 
   String productName(Product product) {
+    final localizedName = (switch (locale) {
+      AppLocale.kz => product.nameKz,
+      AppLocale.ru => product.nameRu,
+      AppLocale.en => product.nameEn,
+    }).trim();
+    if (localizedName.isNotEmpty) return localizedName;
+
     final name = product.name.trim();
     if (name.isNotEmpty) return productNameText(name);
 
@@ -1178,6 +1185,23 @@ class AppText {
     final map = _productNames[key];
     if (map != null) return pick(kz: map.kz, ru: map.ru, en: map.en);
     return product.name;
+  }
+
+  String productNameFromValues({
+    required Object? name,
+    Object? nameKz,
+    Object? nameRu,
+    Object? nameEn,
+  }) {
+    final localizedName = (switch (locale) {
+      AppLocale.kz => nameKz,
+      AppLocale.ru => nameRu,
+      AppLocale.en => nameEn,
+    })?.toString().trim();
+    if (localizedName != null && localizedName.isNotEmpty) {
+      return localizedName;
+    }
+    return productNameText(name);
   }
 
   String productNameText(Object? name) {

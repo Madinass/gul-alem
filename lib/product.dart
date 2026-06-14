@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 class Product {
   final String id;
   final String name;
+  final String nameKz;
+  final String nameRu;
+  final String nameEn;
   final int price;
   final Color color;
   final String imagePath;
@@ -18,6 +21,9 @@ class Product {
   Product({
     required this.id,
     required this.name,
+    this.nameKz = '',
+    this.nameRu = '',
+    this.nameEn = '',
     required this.price,
     required this.imagePath,
     this.imageUrl = '',
@@ -35,6 +41,9 @@ class Product {
     return Product(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
+      nameKz: json['nameKz']?.toString() ?? '',
+      nameRu: json['nameRu']?.toString() ?? '',
+      nameEn: json['nameEn']?.toString() ?? '',
       price: _readInt(json['price']),
       imagePath: (json['imagePath'] ?? json['imageUrl'] ?? '').toString(),
       imageUrl: (json['imageUrl'] ?? '').toString(),

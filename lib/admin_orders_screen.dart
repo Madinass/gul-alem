@@ -193,9 +193,15 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                             spacing: 6,
                             runSpacing: 6,
                             children: order.items.map((item) {
+                              final itemName = t.productNameFromValues(
+                                name: item.name,
+                                nameKz: item.nameKz,
+                                nameRu: item.nameRu,
+                                nameEn: item.nameEn,
+                              );
                               return Chip(
                                 label: Text(
-                                  '${t.itemQuantity(item.name, item.quantity)} - ${t.priceValue(item.price)}',
+                                  '${t.itemQuantity(itemName, item.quantity)} - ${t.priceValue(item.price)}',
                                 ),
                               );
                             }).toList(),

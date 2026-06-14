@@ -8,6 +8,9 @@ import '../order_model.dart';
 
 class OrderGalleryItem {
   final String name;
+  final String nameKz;
+  final String nameRu;
+  final String nameEn;
   final String imagePath;
   final String imageUrl;
   final bool isCustomBouquet;
@@ -15,6 +18,9 @@ class OrderGalleryItem {
 
   const OrderGalleryItem({
     required this.name,
+    this.nameKz = '',
+    this.nameRu = '',
+    this.nameEn = '',
     required this.imagePath,
     required this.imageUrl,
     required this.isCustomBouquet,
@@ -68,6 +74,9 @@ class OrderItemsGallery extends StatelessWidget {
       galleryItems.add(
         OrderGalleryItem(
           name: item.name,
+          nameKz: item.nameKz,
+          nameRu: item.nameRu,
+          nameEn: item.nameEn,
           imagePath: item.imagePath,
           imageUrl: item.imageUrl,
           isCustomBouquet: isCustom || customItems.isNotEmpty,
@@ -178,7 +187,12 @@ class _OrderItemCard extends StatelessWidget {
     final t = context.t;
     final title = item.isCustomBouquet
         ? _customTitle(t)
-        : t.productNameText(item.name);
+        : t.productNameFromValues(
+            name: item.name,
+            nameKz: item.nameKz,
+            nameRu: item.nameRu,
+            nameEn: item.nameEn,
+          );
 
     return SizedBox(
       width: 118,
